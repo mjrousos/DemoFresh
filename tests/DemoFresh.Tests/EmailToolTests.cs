@@ -16,7 +16,8 @@ public class EmailToolTests
         UseSsl = true,
         SenderAddress = "sender@test.com",
         SenderName = "Test Sender",
-        AppPassword = "test-password"
+        ClientId = "test-client-id",
+        ClientSecret = "test-client-secret"
     };
 
     private readonly Mock<ISmtpSender> _smtpMock = new();
@@ -58,14 +59,14 @@ public class EmailToolTests
     public async Task InvokeAsync_Success_CallsSmtpSender()
     {
         _smtpMock
-            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var tool = CreateTool();
         await InvokeToolAsync(tool);
 
         _smtpMock.Verify(
-            s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -76,18 +77,20 @@ public class EmailToolTests
         int capturedPort = 0;
         bool capturedUseSsl = false;
         string? capturedUsername = null;
-        string? capturedPassword = null;
+        string? capturedClientId = null;
+        string? capturedClientSecret = null;
 
         _smtpMock
-            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<MimeMessage, string, int, bool, string, string, CancellationToken>(
-                (msg, host, port, ssl, user, pass, ct) =>
+            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<MimeMessage, string, int, bool, string, string, string, CancellationToken>(
+                (msg, host, port, ssl, user, clientId, clientSecret, ct) =>
                 {
                     capturedHost = host;
                     capturedPort = port;
                     capturedUseSsl = ssl;
                     capturedUsername = user;
-                    capturedPassword = pass;
+                    capturedClientId = clientId;
+                    capturedClientSecret = clientSecret;
                 })
             .Returns(Task.CompletedTask);
 
@@ -97,8 +100,9 @@ public class EmailToolTests
         Assert.Equal(_config.SmtpHost, capturedHost);
         Assert.Equal(_config.SmtpPort, capturedPort);
         Assert.Equal(_config.UseSsl, capturedUseSsl);
-        Assert.Equal(_config.SenderAddress, capturedUsername);
-        Assert.Equal(_config.AppPassword, capturedPassword);
+        Assert.Equal(_config.SenderName, capturedUsername);
+        Assert.Equal(_config.ClientId, capturedClientId);
+        Assert.Equal(_config.ClientSecret, capturedClientSecret);
     }
 
     [Fact]
@@ -107,9 +111,9 @@ public class EmailToolTests
         MimeMessage? capturedMessage = null;
 
         _smtpMock
-            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<MimeMessage, string, int, bool, string, string, CancellationToken>(
-                (msg, host, port, ssl, user, pass, ct) => capturedMessage = msg)
+            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<MimeMessage, string, int, bool, string, string, string, CancellationToken>(
+                (msg, host, port, ssl, user, clientId, clientSecret, ct) => capturedMessage = msg)
             .Returns(Task.CompletedTask);
 
         var tool = CreateTool();
@@ -128,7 +132,7 @@ public class EmailToolTests
     public async Task InvokeAsync_Success_ReturnsSuccessResult()
     {
         _smtpMock
-            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var tool = CreateTool();
@@ -143,7 +147,7 @@ public class EmailToolTests
     public async Task InvokeAsync_SmtpFailure_ReturnsFailureResult()
     {
         _smtpMock
-            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("SMTP connection failed"));
 
         var tool = CreateTool();
@@ -158,7 +162,7 @@ public class EmailToolTests
     public async Task InvokeAsync_SmtpFailure_DoesNotThrow()
     {
         _smtpMock
-            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("SMTP connection failed"));
 
         var tool = CreateTool();

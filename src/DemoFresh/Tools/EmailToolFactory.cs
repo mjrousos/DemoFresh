@@ -24,7 +24,7 @@ public static class EmailToolFactory
                     message.Subject = subject;
                     message.Body = new TextPart("html") { Text = htmlBody };
 
-                    await smtpSender.SendAsync(message, config.SmtpHost, config.SmtpPort, config.UseSsl, config.SenderAddress, config.AppPassword);
+                    await smtpSender.SendAsync(message, config.SmtpHost, config.SmtpPort, config.UseSsl, config.SenderName, config.ClientId, config.ClientSecret);
 
                     logger.LogInformation("Email sent to {Recipient} with subject \"{Subject}\"", recipient, subject);
                     return new { Success = true, Message = $"Email sent successfully to {recipient}" };

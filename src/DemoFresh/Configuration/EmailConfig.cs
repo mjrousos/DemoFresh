@@ -7,5 +7,6 @@ public record EmailConfig
     public bool UseSsl { get; init; } = true;
     public string SenderAddress { get; init; } = string.Empty;
     public string SenderName { get; init; } = string.Empty;
-    public string AppPassword { get; init; } = string.Empty;
+    public string ClientId { get; init; } = string.Empty;
+    public string ClientSecret { get; init; } = string.Empty;
 }

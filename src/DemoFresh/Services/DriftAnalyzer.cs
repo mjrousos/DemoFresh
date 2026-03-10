@@ -154,7 +154,16 @@ public sealed class DriftAnalyzer(
     private static string BuildAnalyzeDriftPrompt(Demo demo, RepoContents repo)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Analyze the demo '{demo.Name}' for drift from current best practices.");
+        sb.AppendLine($"""
+            Analyze the demo '{demo.Name}' for drift from current best practices. 
+            Be sure to only return instances where an out-of-date pattern, deprecated API, or other issue is detected. 
+            Do not report mere omissions or stylistic differences.
+
+            Do flag places where the demo references libraries, frameworks, APIs, or concepts that have had significant updates or changes in best practices since the demo was created.
+            Do NOT suggest expanding the demo to cover additional concepts or best practices that are not directly relevant to the existing content, as this may be intentional for scope reasons. 
+            Focus on identifying drift in the existing content rather than suggesting new content.
+            """);
+
         sb.AppendLine($"Description: {demo.Description}");
         sb.AppendLine($"Concepts: {string.Join(", ", demo.Concepts)}");
         sb.AppendLine();
