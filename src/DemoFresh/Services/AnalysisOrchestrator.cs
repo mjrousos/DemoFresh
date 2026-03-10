@@ -51,6 +51,7 @@ public class AnalysisOrchestrator : BackgroundService
     {
         try
         {
+            _logger.LogInformation("Starting analysis orchestrator with {RepoCount} repos configured", _options.Repos.Count);
             await _sessionManager.InitializeAsync();
 
             foreach (var repo in _options.Repos)
@@ -73,8 +74,6 @@ public class AnalysisOrchestrator : BackgroundService
 
     private async Task ProcessRepoAsync(RepoConfig repo, CancellationToken ct)
     {
-        _logger.LogInformation("Processing repo: {RepoUrl}", repo.Url);
-
         var repoContents = await _repoService.CloneAndEnumerateAsync(repo.Url, repo.Branch, ct);
 
         try
