@@ -173,12 +173,18 @@ public sealed class DriftAnalyzer(
             }
         }
 
-        sb.AppendLine("Please analyze this demo for drift:");
-        sb.AppendLine("1. Use Context7 to look up current documentation for the libraries and frameworks used in the demo");
-        sb.AppendLine("2. Check any URLs for validity");
-        sb.AppendLine("3. Search the web for current best practices related to the concepts");
-        sb.AppendLine("4. Compare the demo's usage patterns against the latest official documentation");
-        sb.AppendLine("5. Identify any drift (outdated patterns, deprecated APIs, broken links, etc.)");
+        sb.AppendLine("""
+            IMPORTANT: You have access to Context7 MCP which provides up-to-date, version-specific documentation for libraries and frameworks.
+            Before analyzing drift, you MUST use Context7 to look up current documentation for each library and framework referenced in this demo.
+            For each concept/library, first resolve the library ID with Context7, then query its documentation to get the latest APIs, patterns, and best practices.
+
+            Analysis steps:
+            1. For each library/framework in the demo, use Context7 to retrieve its current documentation
+            2. Check any URLs in the demo files for validity
+            3. Search the web for broader best practices related to the concepts
+            4. Compare the demo's usage patterns against the documentation retrieved from Context7
+            5. Identify any drift (outdated patterns, deprecated APIs, broken links, version mismatches, etc.)
+            """);
         sb.AppendLine();
         sb.AppendLine("""
             Respond with ONLY a JSON array (no markdown, no explanation, no code fences).

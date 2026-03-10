@@ -14,7 +14,9 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         "You are an expert at analyzing code repositories. Identify demos and concepts being taught. " +
         "When analyzing for drift, check URLs for validity, search the web for current best practices, " +
         "and compare existing code. Return results as structured JSON. " +
-        "Always use Context7 MCP when you need library/API documentation, code generation, setup or configuration steps without being explicitly asked.";
+        "You have access to Context7 MCP which provides up-to-date library documentation. " +
+        "Always use Context7 to look up current documentation for any library, framework, or API before analyzing drift. " +
+        "This is critical for accurate drift detection — do not skip this step.";
 
     private const string PlanningSystemMessage =
         "You are a planning assistant. Given drift findings, produce a structured implementation plan. " +
