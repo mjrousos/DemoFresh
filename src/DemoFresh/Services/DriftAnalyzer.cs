@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using DemoFresh.Configuration;
 using DemoFresh.Models;
 using Microsoft.Extensions.Logging;
@@ -12,7 +13,8 @@ public sealed class DriftAnalyzer(
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     public async Task<IReadOnlyList<Demo>> IdentifyDemosAsync(
