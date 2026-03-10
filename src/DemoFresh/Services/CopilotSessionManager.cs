@@ -130,6 +130,14 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
             };
             _logger.LogInformation("Context7 MCP server configured for session");
         }
+        else if (context7 is null or { Enabled: false })
+        {
+            _logger.LogDebug("Context7 MCP is disabled; skipping");
+        }
+        else
+        {
+            _logger.LogWarning("Context7 MCP is enabled but no API key is configured; skipping. Set DemoFresh:Context7:ApiKey to enable.");
+        }
 
         _logger.LogInformation("Creating Copilot session with model {Model}", model);
         var session = await _client.CreateSessionAsync(config);

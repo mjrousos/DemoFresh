@@ -135,8 +135,20 @@ public class AnalysisOrchestrator : BackgroundService
         return await _prService.CreatePullRequestAsync(demo, plan, workingDirectory, ct);
     }
 
+    private bool IsEmailConfigured =>
+        !string.IsNullOrEmpty(_options.Email.SenderAddress) &&
+        !string.IsNullOrEmpty(_options.Email.ClientId) &&
+        !string.IsNullOrEmpty(_options.Email.ClientSecret) &&
+        !string.IsNullOrEmpty(_options.ReportRecipient);
+
     private async Task SendEmailReportAsync(AnalysisReport report, CancellationToken ct)
     {
+        if (!IsEmailConfigured)
+        {
+            _logger.LogWarning("Email is not configured (missing SenderAddress, ClientId, ClientSecret, or ReportRecipient); skipping email report");
+            return;
+        }
+
         var htmlReport = _reportGenerator.GenerateHtmlReport(report);
         var emailTool = EmailToolFactory.Create(_options.Email, _smtpSender, _logger);
 

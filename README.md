@@ -20,9 +20,12 @@ DemoFresh is a .NET 10 command-line tool that uses the [GitHub Copilot SDK](http
 - [GitHub Copilot CLI](https://github.com/github/copilot-cli) installed and authenticated (`copilot` in PATH)
 - [GitHub CLI](https://cli.github.com/) installed and authenticated (`gh auth login`)
 - Git installed and in PATH
-- [Node.js 18+](https://nodejs.org/) (required for Context7 MCP server)
-- A [Context7 API key](https://context7.com) for up-to-date library documentation
-- A Gmail account with a [Google Cloud OAuth2 client](https://console.cloud.google.com/apis/credentials) (Client ID and Client Secret) with the Gmail API enabled for email reports
+- Optional
+    - A [Context7 API key](https://context7.com) for up-to-date library documentation
+    - [Node.js 18+](https://nodejs.org/) (required for Context7 MCP server)
+    - A Gmail account with a [Google Cloud OAuth2 client](https://console.cloud.google.com/apis/credentials) (Client ID and Client Secret) with the Gmail API enabled for email reports
+        - For details on how to set up Google OAuth2 credentials for SMTP, see [this guide](https://github.com/jstedfast/MailKit/blob/master/GMailOAuth2.md).
+        - Note that the first time the app tries to send email using the configured Gmail account, it will prompt you to complete the OAuth2 flow in a browser. After that, the access token is cached locally and refreshed automatically, so no further interaction is needed for email sending.
 
 ## Build
 
