@@ -22,12 +22,12 @@ public class RepoServiceTests
         string? capturedArgs = null;
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string?, CancellationToken>((cmd, args, dir, ct) => capturedArgs = args)
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+            .Callback<string, string, string?, CancellationToken, string?>((cmd, args, dir, ct, stdin) => capturedArgs = args)
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "main\n", ""));
 
         RepoContents? result = null;
@@ -51,8 +51,8 @@ public class RepoServiceTests
         string? capturedArgs = null;
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string?, CancellationToken>((cmd, args, dir, ct) => capturedArgs = args)
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+            .Callback<string, string, string?, CancellationToken, string?>((cmd, args, dir, ct, stdin) => capturedArgs = args)
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         RepoContents? result = null;
@@ -72,7 +72,7 @@ public class RepoServiceTests
     public async Task CloneAndEnumerate_CloneFailure_Throws()
     {
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(1, "", "error: clone failed"));
 
         var act = () => _sut.CloneAndEnumerateAsync("https://github.com/test/repo.git");
@@ -85,7 +85,7 @@ public class RepoServiceTests
     public async Task CloneAndEnumerate_InvalidUrl_ThrowsOrReturnsError()
     {
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.IsAny<string>(), null, It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(128, string.Empty, "fatal: repository not found"));
 
         var act = () => _sut.CloneAndEnumerateAsync("https://not-a-real-host.invalid/repo.git");
@@ -99,11 +99,11 @@ public class RepoServiceTests
         var repoUrl = "https://github.com/test/repo.git";
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "develop\n", ""));
 
         RepoContents? result = null;
@@ -124,8 +124,8 @@ public class RepoServiceTests
         var repoUrl = "https://github.com/test/repo.git";
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string?, CancellationToken>((cmd, args, dir, ct) =>
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+            .Callback<string, string, string?, CancellationToken, string?>((cmd, args, dir, ct, stdin) =>
             {
                 var targetDir = args.Split(' ').Last();
                 File.WriteAllText(Path.Combine(targetDir, "Program.cs"), "class Program {}");
@@ -135,7 +135,7 @@ public class RepoServiceTests
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "main\n", ""));
 
         RepoContents? result = null;
@@ -159,8 +159,8 @@ public class RepoServiceTests
         var repoUrl = "https://github.com/test/repo.git";
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string?, CancellationToken>((cmd, args, dir, ct) =>
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+            .Callback<string, string, string?, CancellationToken, string?>((cmd, args, dir, ct, stdin) =>
             {
                 var targetDir = args.Split(' ').Last();
                 File.WriteAllText(Path.Combine(targetDir, "Small.cs"), "small file");
@@ -169,7 +169,7 @@ public class RepoServiceTests
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "main\n", ""));
 
         RepoContents? result = null;
@@ -191,8 +191,8 @@ public class RepoServiceTests
         var repoUrl = "https://github.com/test/repo.git";
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string?, CancellationToken>((cmd, args, dir, ct) =>
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+            .Callback<string, string, string?, CancellationToken, string?>((cmd, args, dir, ct, stdin) =>
             {
                 var targetDir = args.Split(' ').Last();
 
@@ -209,7 +209,7 @@ public class RepoServiceTests
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "main\n", ""));
 
         RepoContents? result = null;
@@ -252,11 +252,11 @@ public class RepoServiceTests
         var repoUrl = "https://github.com/test/repo.git";
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "main\n", ""));
 
         // Clone creates a tracked temp directory
@@ -275,11 +275,11 @@ public class RepoServiceTests
         var repoUrl = "https://github.com/test/repo.git";
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "main\n", ""));
 
         var result = await _sut.CloneAndEnumerateAsync(repoUrl);

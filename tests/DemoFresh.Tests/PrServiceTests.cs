@@ -22,11 +22,11 @@ public class PrServiceTests
         var prUrl = "https://github.com/test/repo/pull/42";
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("gh", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("gh", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, prUrl, ""));
 
         var result = await _sut.CreatePullRequestAsync(demo, "Update plan", "/work/dir");
@@ -43,16 +43,16 @@ public class PrServiceTests
         string? capturedCheckoutArgs = null;
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.StartsWith("checkout")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string?, CancellationToken>((cmd, args, dir, ct) => capturedCheckoutArgs = args)
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.StartsWith("checkout")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+            .Callback<string, string, string?, CancellationToken, string?>((cmd, args, dir, ct, stdin) => capturedCheckoutArgs = args)
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("gh", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("gh", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "https://github.com/test/repo/pull/1", ""));
 
         await _sut.CreatePullRequestAsync(demo, "plan", "/work/dir");
@@ -69,8 +69,8 @@ public class PrServiceTests
         var calls = new List<string>();
 
         _processRunnerMock
-            .Setup(p => p.RunAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string?, CancellationToken>((cmd, args, dir, ct) =>
+            .Setup(p => p.RunAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+            .Callback<string, string, string?, CancellationToken, string?>((cmd, args, dir, ct, stdin) =>
                 calls.Add($"{cmd} {args.Split(' ')[0]}"))
             .ReturnsAsync(new ProcessResult(0, "https://github.com/test/repo/pull/1", ""));
 
@@ -90,7 +90,7 @@ public class PrServiceTests
         var demo = TestDataHelpers.CreateTestDemo();
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.StartsWith("checkout")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.StartsWith("checkout")), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(1, "", "error: pathspec did not match"));
 
         var result = await _sut.CreatePullRequestAsync(demo, "plan", "/work/dir");
@@ -106,11 +106,11 @@ public class PrServiceTests
         var demo = TestDataHelpers.CreateTestDemo();
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("gh", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("gh", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(1, "", "error: Could not create PR"));
 
         var result = await _sut.CreatePullRequestAsync(demo, "plan", "/work/dir");
@@ -126,11 +126,11 @@ public class PrServiceTests
         var expectedUrl = "https://github.com/test/repo/pull/99";
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("gh", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("gh", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, $"Creating pull request for branch\n{expectedUrl}\n", ""));
 
         var result = await _sut.CreatePullRequestAsync(demo, "plan", "/work/dir");
@@ -139,27 +139,26 @@ public class PrServiceTests
     }
 
     [Fact]
-    public async Task CreatePr_EscapesPlanForCli()
+    public async Task CreatePr_PassesPlanViaStdin()
     {
         var demo = TestDataHelpers.CreateTestDemo();
         var plan = "Fix\nthe \"bug\"";
         string? capturedGhArgs = null;
+        string? capturedStdin = null;
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.RunAsync("git", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProcessResult(0, "", ""));
 
         _processRunnerMock
-            .Setup(p => p.RunAsync("gh", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback<string, string, string?, CancellationToken>((cmd, args, dir, ct) => capturedGhArgs = args)
+            .Setup(p => p.RunAsync("gh", It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+            .Callback<string, string, string?, CancellationToken, string?>((cmd, args, dir, ct, stdin) => { capturedGhArgs = args; capturedStdin = stdin; })
             .ReturnsAsync(new ProcessResult(0, "https://github.com/test/repo/pull/1", ""));
 
         await _sut.CreatePullRequestAsync(demo, plan, "/work/dir");
 
         Assert.NotNull(capturedGhArgs);
-        // Newlines should be escaped to literal \n
-        Assert.Contains("\\n", capturedGhArgs);
-        // Quotes should be escaped to literal \"
-        Assert.Contains("\\\"", capturedGhArgs);
+        Assert.Contains("--body-file -", capturedGhArgs);
+        Assert.Equal(plan, capturedStdin);
     }
 }

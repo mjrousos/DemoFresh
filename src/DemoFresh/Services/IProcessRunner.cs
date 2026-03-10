@@ -4,5 +4,5 @@ public record ProcessResult(int ExitCode, string StandardOutput, string Standard
 
 public interface IProcessRunner
 {
-    Task<ProcessResult> RunAsync(string command, string arguments, string? workingDirectory = null, CancellationToken ct = default);
+    Task<ProcessResult> RunAsync(string command, string arguments, string? workingDirectory = null, CancellationToken ct = default, string? standardInput = null);
 }

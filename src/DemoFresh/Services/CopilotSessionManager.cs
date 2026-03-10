@@ -25,7 +25,7 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
     private const string ExecutionSystemMessage =
         "Execute the provided plan. Make the necessary code changes.";
 
-    private const int CopilotTimeoutSeconds = 300;
+    private const int CopilotTimeoutSeconds = 600;
 
     public CopilotSessionManager(ILogger<CopilotSessionManager> logger)
     {
@@ -124,7 +124,8 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
                 {
                     Type = "stdio",
                     Command = context7.Command,
-                    Args = args
+                    Args = args,
+                    Tools = ["*"] 
                 }
             };
             _logger.LogInformation("Context7 MCP server configured for session");

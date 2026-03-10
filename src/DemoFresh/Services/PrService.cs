@@ -20,9 +20,10 @@ public class PrService(IProcessRunner processRunner, ILogger<PrService> logger) 
 
             var prOutput = await RunCommandAsync(
                 "gh",
-                $"pr create --title \"DemoFresh: Update {demo.Name}\" --body \"{EscapeForCli(plan)}\" --head {branch}",
+                $"pr create --title \"DemoFresh: Update {demo.Name}\" --body-file - --head {branch}",
                 workingDirectory,
-                ct);
+                ct,
+                standardInput: plan);
 
             var prUrl = ParsePrUrl(prOutput);
 
@@ -36,11 +37,11 @@ public class PrService(IProcessRunner processRunner, ILogger<PrService> logger) 
         }
     }
 
-    private async Task<string> RunCommandAsync(string command, string args, string workingDir, CancellationToken ct)
+    private async Task<string> RunCommandAsync(string command, string args, string workingDir, CancellationToken ct, string? standardInput = null)
     {
         logger.LogDebug("Running: {Command} {Args} in {WorkingDir}", command, args, workingDir);
 
-        var result = await processRunner.RunAsync(command, args, workingDir, ct);
+        var result = await processRunner.RunAsync(command, args, workingDir, ct, standardInput);
 
         if (!string.IsNullOrWhiteSpace(result.StandardOutput))
         {
@@ -73,14 +74,5 @@ public class PrService(IProcessRunner processRunner, ILogger<PrService> logger) 
         }
 
         return output.Trim();
-    }
-
-    private static string EscapeForCli(string text)
-    {
-        return text
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"")
-            .Replace("\r\n", "\\n")
-            .Replace("\n", "\\n");
     }
 }
