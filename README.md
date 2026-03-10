@@ -8,11 +8,11 @@ DemoFresh is a .NET 10 command-line tool that uses the [GitHub Copilot SDK](http
 
 1. **Clone & scan** — Clones the target repo and enumerates source files.
 2. **Identify demos** — Sends the file listing to a Copilot SDK session which identifies discrete demos/concepts.
-3. **Analyze drift** — For each demo, Copilot uses Context7 MCP for up-to-date library documentation and web search for broader best practices, comparing against the existing code.
+3. **Analyze drift** — For each demo, Copilot checks for drift using web search and (optionally) Context7 MCP for up-to-date library documentation.
 4. **Plan & remediate** — For demos with drift, Copilot generates an implementation plan and either:
    - Creates a PR with the fixes (`CreatePR` mode), or
    - Delegates to the GitHub Copilot coding agent for cloud-based remediation (`DelegateToCodingAgent` mode).
-5. **Report** — Sends an HTML email report summarizing findings and actions taken.
+5. **Report** — Prints a console summary and (if email is configured) sends an HTML email report summarizing findings and actions taken.
 
 ## Prerequisites
 
@@ -58,7 +58,7 @@ Edit `src/DemoFresh/appsettings.json`:
       }
     ],
     "ActionMode": "CreatePR",          // "CreatePR" or "DelegateToCodingAgent"
-    "Model": "gpt-5",                 // AI model (gpt-5, claude-sonnet-4.5, etc.)
+    "Model": "claude-sonnet-4.6",     // AI model (claude-sonnet-4.6, gpt-5, etc.)
     "ReportRecipient": "you@example.com",
     "Email": {
       "SmtpHost": "smtp.gmail.com",
@@ -117,7 +117,7 @@ dotnet run --project src/DemoFresh -- --repo https://github.com/owner/repo
 
 The `--repo` flag overrides the configured repo list for a one-off run.
 
-**Logs** are written to `logs/demofresh-YYYYMMDD.log` by default (configurable via the `Serilog` section in appsettings.json).
+**Logs** are written to both the console and `logs/demofresh-YYYYMMDD.log` by default (configurable via the `Serilog` section in appsettings.json).
 
 ## Project Structure
 
@@ -141,7 +141,7 @@ src/DemoFresh/
 │   └── EmailToolFactory.cs        Copilot SDK custom tool for sending email
 └── Models/                        Data models (Demo, DriftFinding, etc.)
 
-tests/DemoFresh.Tests/             xUnit tests (56 tests)
+tests/DemoFresh.Tests/             xUnit tests (61 tests)
 ```
 
 ## License
