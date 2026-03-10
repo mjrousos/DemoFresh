@@ -8,7 +8,7 @@ DemoFresh is a .NET 10 command-line tool that uses the [GitHub Copilot SDK](http
 
 1. **Clone & scan** — Clones the target repo and enumerates source files.
 2. **Identify demos** — Sends the file listing to a Copilot SDK session which identifies discrete demos/concepts.
-3. **Analyze drift** — For each demo, Copilot checks URLs, searches the web for current best practices, and compares against the existing code.
+3. **Analyze drift** — For each demo, Copilot uses Context7 MCP for up-to-date library documentation and web search for broader best practices, comparing against the existing code.
 4. **Plan & remediate** — For demos with drift, Copilot generates an implementation plan and either:
    - Creates a PR with the fixes (`CreatePR` mode), or
    - Delegates to the GitHub Copilot coding agent for cloud-based remediation (`DelegateToCodingAgent` mode).
@@ -20,6 +20,8 @@ DemoFresh is a .NET 10 command-line tool that uses the [GitHub Copilot SDK](http
 - [GitHub Copilot CLI](https://github.com/github/copilot-cli) installed and authenticated (`copilot` in PATH)
 - [GitHub CLI](https://cli.github.com/) installed and authenticated (`gh auth login`)
 - Git installed and in PATH
+- [Node.js 18+](https://nodejs.org/) (required for Context7 MCP server)
+- A [Context7 API key](https://context7.com) for up-to-date library documentation
 - A Gmail account with an [app password](https://support.google.com/accounts/answer/185833) for email reports (or another SMTP provider)
 
 ## Build
@@ -62,6 +64,12 @@ Edit `src/DemoFresh/appsettings.json`:
       "SenderAddress": "your-email@gmail.com",
       "SenderName": "DemoFresh",
       "AppPassword": "your-gmail-app-password"
+    },
+    "Context7": {
+      "Enabled": true,                         // Enable Context7 MCP for documentation lookup
+      "Command": "npx",                        // Command to launch Context7 (default: npx)
+      "Args": ["-y", "@upstash/context7-mcp"], // Args for the Context7 MCP server
+      "ApiKey": ""                             // Context7 API key (use user secrets)
     }
   }
 }
@@ -72,6 +80,11 @@ Edit `src/DemoFresh/appsettings.json`:
 > cd src/DemoFresh
 > dotnet user-secrets init
 > dotnet user-secrets set "DemoFresh:Email:AppPassword" "your-app-password"
+> ```
+>
+> For Context7:
+> ```bash
+> dotnet user-secrets set "DemoFresh:Context7:ApiKey" "your-context7-api-key"
 > ```
 
 ## Usage

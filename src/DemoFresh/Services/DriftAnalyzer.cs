@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using DemoFresh.Configuration;
 using DemoFresh.Models;
 using Microsoft.Extensions.Logging;
 
@@ -15,9 +16,9 @@ public sealed class DriftAnalyzer(
     };
 
     public async Task<IReadOnlyList<Demo>> IdentifyDemosAsync(
-        RepoContents repo, string model, CancellationToken ct = default)
+        RepoContents repo, string model, Context7Config? context7 = null, CancellationToken ct = default)
     {
-        var session = await sessionManager.CreateAnalysisSessionAsync(model);
+        var session = await sessionManager.CreateAnalysisSessionAsync(model, context7);
         try
         {
             var prompt = BuildIdentifyDemosPrompt(repo);
@@ -55,9 +56,9 @@ public sealed class DriftAnalyzer(
     }
 
     public async Task<IReadOnlyList<DriftFinding>> AnalyzeDriftAsync(
-        Demo demo, RepoContents repo, string model, CancellationToken ct = default)
+        Demo demo, RepoContents repo, string model, Context7Config? context7 = null, CancellationToken ct = default)
     {
-        var session = await sessionManager.CreateAnalysisSessionAsync(model);
+        var session = await sessionManager.CreateAnalysisSessionAsync(model, context7);
         try
         {
             var prompt = BuildAnalyzeDriftPrompt(demo, repo);
@@ -147,10 +148,11 @@ public sealed class DriftAnalyzer(
         }
 
         sb.AppendLine("Please analyze this demo for drift:");
-        sb.AppendLine("1. Check any URLs for validity");
-        sb.AppendLine("2. Search the web for current best practices related to the concepts");
-        sb.AppendLine("3. Compare the existing code against those best practices");
-        sb.AppendLine("4. Identify any drift (outdated patterns, deprecated APIs, broken links, etc.)");
+        sb.AppendLine("1. Use Context7 to look up current documentation for the libraries and frameworks used in the demo");
+        sb.AppendLine("2. Check any URLs for validity");
+        sb.AppendLine("3. Search the web for current best practices related to the concepts");
+        sb.AppendLine("4. Compare the demo's usage patterns against the latest official documentation");
+        sb.AppendLine("5. Identify any drift (outdated patterns, deprecated APIs, broken links, etc.)");
         sb.AppendLine();
         sb.AppendLine("Return a JSON array of drift findings. Each finding should have:");
         sb.AppendLine("- Description: what is outdated or incorrect");

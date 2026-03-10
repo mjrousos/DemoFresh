@@ -1,3 +1,4 @@
+using DemoFresh.Configuration;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.AI;
 
@@ -7,7 +8,7 @@ public interface ICopilotSessionManager : IAsyncDisposable
 {
     Task InitializeAsync();
 
-    Task<CopilotSession> CreateAnalysisSessionAsync(string model, IEnumerable<AIFunction>? tools = null);
+    Task<CopilotSession> CreateAnalysisSessionAsync(string model, Context7Config? context7 = null, IEnumerable<AIFunction>? tools = null);
 
     Task<CopilotSession> CreatePlanningSessionAsync(string model);
 

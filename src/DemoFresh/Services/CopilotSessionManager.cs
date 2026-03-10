@@ -1,3 +1,4 @@
+using DemoFresh.Configuration;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -12,7 +13,8 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
     private const string AnalysisSystemMessage =
         "You are an expert at analyzing code repositories. Identify demos and concepts being taught. " +
         "When analyzing for drift, check URLs for validity, search the web for current best practices, " +
-        "and compare existing code. Return results as structured JSON.";
+        "and compare existing code. Return results as structured JSON. " +
+        "Always use Context7 MCP when you need library/API documentation, code generation, setup or configuration steps without being explicitly asked.";
 
     private const string PlanningSystemMessage =
         "You are a planning assistant. Given drift findings, produce a structured implementation plan. " +
@@ -34,9 +36,9 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         _logger.LogInformation("Copilot client started");
     }
 
-    public Task<CopilotSession> CreateAnalysisSessionAsync(string model, IEnumerable<AIFunction>? tools = null)
+    public Task<CopilotSession> CreateAnalysisSessionAsync(string model, Context7Config? context7 = null, IEnumerable<AIFunction>? tools = null)
     {
-        return CreateSessionAsync(model, AnalysisSystemMessage, tools);
+        return CreateSessionAsync(model, AnalysisSystemMessage, tools, context7);
     }
 
     public Task<CopilotSession> CreatePlanningSessionAsync(string model)
@@ -82,7 +84,8 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
     private async Task<CopilotSession> CreateSessionAsync(
         string model,
         string systemMessage,
-        IEnumerable<AIFunction>? tools)
+        IEnumerable<AIFunction>? tools,
+        Context7Config? context7 = null)
     {
         if (_client is null)
         {
@@ -103,6 +106,21 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         if (tools is not null)
         {
             config.Tools = new List<AIFunction>(tools);
+        }
+
+        if (context7 is { Enabled: true, ApiKey.Length: > 0 })
+        {
+            var args = context7.Args.Concat(["--api-key", context7.ApiKey]).ToList();
+            config.McpServers = new Dictionary<string, object>
+            {
+                ["context7"] = new McpLocalServerConfig
+                {
+                    Type = "stdio",
+                    Command = context7.Command,
+                    Args = args
+                }
+            };
+            _logger.LogInformation("Context7 MCP server configured for session");
         }
 
         _logger.LogInformation("Creating Copilot session with model {Model}", model);

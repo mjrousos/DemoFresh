@@ -21,7 +21,7 @@ DemoFresh is a .NET 10 command-line tool that uses the GitHub Copilot SDK to aut
 The main workflow is orchestrated by `AnalysisOrchestrator` (a `BackgroundService`):
 
 1. `RepoService` — Clones repos via `IProcessRunner` (git), enumerates source files, filters by extension/size/directory
-2. `DriftAnalyzer` — **Turn 1:** Sends file listing to Copilot to identify demos (returns `Demo` objects). **Turn 2:** Per-demo drift analysis (returns `DriftFinding` objects). Expects structured JSON responses from the LLM.
+2. `DriftAnalyzer` — **Turn 1:** Sends file listing to Copilot to identify demos (returns `Demo` objects). **Turn 2:** Per-demo drift analysis (returns `DriftFinding` objects). Uses Context7 MCP (when enabled) for up-to-date library documentation and web search for broader best practice analysis. Expects structured JSON responses from the LLM.
 3. `PlanExecutor` — **Planning turn:** Sends findings to a planning session (system message: "plan only, don't execute"). **Execution turn:** Sends plan to an execution session pointed at the working directory.
 4. `PrService` — Creates git branches (`demofresh/<name>-<date>`), commits, pushes, and opens PRs via `IProcessRunner` (git/gh)
 5. `DelegationService` — Sends `& <plan>` prompt through an SDK session (the `&` prefix tells the CLI to delegate to the cloud coding agent)
@@ -35,6 +35,14 @@ External dependencies are wrapped in thin interfaces so all business logic can b
 - `ICopilotSessionManager` / `CopilotSessionManager` — Wraps `CopilotClient`/`CopilotSession`. Used by `DriftAnalyzer`, `PlanExecutor`, `DelegationService`.
 
 When adding new external dependencies, always follow this pattern: create an interface, implement a thin wrapper, inject via DI, and mock in tests.
+
+### Context7 MCP Integration
+- Context7 provides up-to-date, version-specific library documentation via MCP
+- Configured per-session via `SessionConfig.McpServers` when `Context7Config.Enabled` is true
+- Launches locally via `npx -y @upstash/context7-mcp --api-key <key>` (stdio transport)
+- API key is read from `DemoFreshOptions.Context7.ApiKey` (use .NET user secrets in development)
+- Analysis system messages instruct the agent to always use Context7 for library/API documentation
+- If Context7 is disabled or unavailable, the agent falls back to web search
 
 ### Data Models
 All models are immutable records in `Models/`:

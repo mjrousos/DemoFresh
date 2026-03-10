@@ -7,4 +7,5 @@ public record DemoFreshOptions
     public string Model { get; init; } = "gpt-5";
     public string ReportRecipient { get; init; } = string.Empty;
     public EmailConfig Email { get; init; } = new();
+    public Context7Config Context7 { get; init; } = new();
 }

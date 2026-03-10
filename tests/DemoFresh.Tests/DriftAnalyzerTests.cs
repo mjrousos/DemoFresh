@@ -86,7 +86,7 @@ public class DriftAnalyzerTests
     private void SetupSessionManagerToReturn(string response)
     {
         _sessionManagerMock
-            .Setup(m => m.CreateAnalysisSessionAsync(It.IsAny<string>(), It.IsAny<IEnumerable<Microsoft.Extensions.AI.AIFunction>?>()))
+            .Setup(m => m.CreateAnalysisSessionAsync(It.IsAny<string>(), It.IsAny<DemoFresh.Configuration.Context7Config?>(), It.IsAny<IEnumerable<Microsoft.Extensions.AI.AIFunction>?>()))
             .ReturnsAsync((CopilotSession)null!);
 
         _sessionManagerMock

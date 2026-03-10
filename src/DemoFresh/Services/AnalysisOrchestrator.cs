@@ -79,7 +79,7 @@ public class AnalysisOrchestrator : BackgroundService
 
         try
         {
-            var demos = await _driftAnalyzer.IdentifyDemosAsync(repoContents, _options.Model, ct);
+            var demos = await _driftAnalyzer.IdentifyDemosAsync(repoContents, _options.Model, _options.Context7, ct);
             var demoAnalyses = new List<DemoAnalysis>();
 
             foreach (var demo in demos)
@@ -107,7 +107,7 @@ public class AnalysisOrchestrator : BackgroundService
 
     private async Task<DemoAnalysis> AnalyzeDemoAsync(Demo demo, RepoContents repoContents, CancellationToken ct)
     {
-        var findings = await _driftAnalyzer.AnalyzeDriftAsync(demo, repoContents, _options.Model, ct);
+        var findings = await _driftAnalyzer.AnalyzeDriftAsync(demo, repoContents, _options.Model, _options.Context7, ct);
 
         if (findings.Count == 0)
         {
@@ -141,7 +141,7 @@ public class AnalysisOrchestrator : BackgroundService
         var htmlReport = _reportGenerator.GenerateHtmlReport(report);
         var emailTool = EmailToolFactory.Create(_options.Email, _smtpSender, _logger);
 
-        var session = await _sessionManager.CreateAnalysisSessionAsync(_options.Model, [emailTool]);
+        var session = await _sessionManager.CreateAnalysisSessionAsync(_options.Model, tools: [emailTool]);
         var prompt = $"Send an email to {_options.ReportRecipient} with the subject " +
                      $"\"DemoFresh Report: {report.RepoUrl}\" and the following HTML body:\n\n{htmlReport}";
 
