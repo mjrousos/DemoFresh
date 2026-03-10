@@ -5,6 +5,9 @@ namespace DemoFresh.Services;
 
 public class RepoService(IProcessRunner processRunner, ILogger<RepoService> logger) : IRepoService
 {
+    private readonly List<string> _trackedDirectories = [];
+    private readonly object _lock = new();
+
     private static readonly HashSet<string> SourceExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".cs", ".csproj", ".sln", ".json", ".md", ".txt",
@@ -27,6 +30,11 @@ public class RepoService(IProcessRunner processRunner, ILogger<RepoService> logg
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"demofresh-{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
+
+        lock (_lock)
+        {
+            _trackedDirectories.Add(tempDir);
+        }
 
         logger.LogInformation("Cloning repository {RepoUrl} into {TempDir}", repoUrl, tempDir);
 
@@ -116,7 +124,27 @@ public class RepoService(IProcessRunner processRunner, ILogger<RepoService> logg
             logger.LogWarning(ex, "Failed to clean up working directory {Directory}", workingDirectory);
         }
 
+        lock (_lock)
+        {
+            _trackedDirectories.Remove(workingDirectory);
+        }
+
         return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        List<string> remaining;
+        lock (_lock)
+        {
+            remaining = [.. _trackedDirectories];
+        }
+
+        foreach (var dir in remaining)
+        {
+            logger.LogInformation("Disposing: cleaning up tracked working directory {Directory}", dir);
+            await CleanupAsync(dir);
+        }
     }
 
     private static bool IsInSkippedDirectory(string relativePath)

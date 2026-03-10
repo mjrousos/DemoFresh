@@ -245,4 +245,49 @@ public class RepoServiceTests
         var exception = await Record.ExceptionAsync(() => _sut.CleanupAsync(nonexistentDir));
         Assert.Null(exception);
     }
+
+    [Fact]
+    public async Task DisposeAsync_CleansUpTrackedDirectories()
+    {
+        var repoUrl = "https://github.com/test/repo.git";
+
+        _processRunnerMock
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessResult(0, "", ""));
+
+        _processRunnerMock
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessResult(0, "main\n", ""));
+
+        // Clone creates a tracked temp directory
+        var result = await _sut.CloneAndEnumerateAsync(repoUrl);
+        Assert.True(Directory.Exists(result.WorkingDirectory));
+
+        // Dispose should clean it up without explicit CleanupAsync call
+        await _sut.DisposeAsync();
+
+        Assert.False(Directory.Exists(result.WorkingDirectory));
+    }
+
+    [Fact]
+    public async Task DisposeAsync_SkipsAlreadyCleanedDirectories()
+    {
+        var repoUrl = "https://github.com/test/repo.git";
+
+        _processRunnerMock
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("clone")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessResult(0, "", ""));
+
+        _processRunnerMock
+            .Setup(p => p.RunAsync("git", It.Is<string>(a => a.Contains("rev-parse")), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessResult(0, "main\n", ""));
+
+        var result = await _sut.CloneAndEnumerateAsync(repoUrl);
+        await _sut.CleanupAsync(result.WorkingDirectory);
+        Assert.False(Directory.Exists(result.WorkingDirectory));
+
+        // Dispose should not throw even though the directory was already cleaned
+        var exception = await Record.ExceptionAsync(() => _sut.DisposeAsync().AsTask());
+        Assert.Null(exception);
+    }
 }
