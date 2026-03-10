@@ -100,12 +100,15 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
                 Mode = SystemMessageMode.Append,
                 Content = systemMessage
             },
-            Hooks = CreateHooks()
+            Hooks = CreateHooks(),
+
+            // For more granular control, you can implement custom permission handling logic here
+            OnPermissionRequest = PermissionHandler.ApproveAll
         };
 
         if (tools is not null)
         {
-            config.Tools = new List<AIFunction>(tools);
+            config.Tools = [.. tools];
         }
 
         if (context7 is { Enabled: true, ApiKey.Length: > 0 })
