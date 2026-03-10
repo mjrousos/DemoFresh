@@ -22,7 +22,7 @@ DemoFresh is a .NET 10 command-line tool that uses the [GitHub Copilot SDK](http
 - Git installed and in PATH
 - [Node.js 18+](https://nodejs.org/) (required for Context7 MCP server)
 - A [Context7 API key](https://context7.com) for up-to-date library documentation
-- A Gmail account with an [app password](https://support.google.com/accounts/answer/185833) for email reports (or another SMTP provider)
+- A Gmail account with a [Google Cloud OAuth2 client](https://console.cloud.google.com/apis/credentials) (Client ID and Client Secret) with the Gmail API enabled for email reports
 
 ## Build
 
@@ -63,7 +63,8 @@ Edit `src/DemoFresh/appsettings.json`:
       "UseSsl": true,
       "SenderAddress": "your-email@gmail.com",
       "SenderName": "DemoFresh",
-      "AppPassword": "your-gmail-app-password"
+      "ClientId": "",                  // Google OAuth2 Client ID (use user secrets)
+      "ClientSecret": ""               // Google OAuth2 Client Secret (use user secrets)
     },
     "Context7": {
       "Enabled": true,                         // Enable Context7 MCP for documentation lookup
@@ -75,17 +76,27 @@ Edit `src/DemoFresh/appsettings.json`:
 }
 ```
 
-> **Tip:** Use [.NET user secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) to keep your app password out of source control:
+> **Tip:** Use [.NET user secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) to keep credentials out of source control:
 > ```bash
 > cd src/DemoFresh
 > dotnet user-secrets init
-> dotnet user-secrets set "DemoFresh:Email:AppPassword" "your-app-password"
+> dotnet user-secrets set "DemoFresh:Email:ClientId" "your-google-client-id"
+> dotnet user-secrets set "DemoFresh:Email:ClientSecret" "your-google-client-secret"
 > ```
 >
 > For Context7:
 > ```bash
 > dotnet user-secrets set "DemoFresh:Context7:ApiKey" "your-context7-api-key"
 > ```
+
+**Testing email:** Use `--test-email` to send a test email directly (bypasses the full pipeline):
+
+```bash
+dotnet run --project src/DemoFresh -- --test-email
+dotnet run --project src/DemoFresh -- --test-email --test-email-to user@example.com
+```
+
+On first run, a browser window will open for Google OAuth2 consent. The token is cached locally for subsequent runs.
 
 ## Usage
 
