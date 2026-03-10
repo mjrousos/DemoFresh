@@ -3,19 +3,36 @@
 ## Project Overview
 DemoFresh is a .NET 10 command-line tool that uses the GitHub Copilot SDK to automatically keep demo code and learning documentation up to date with current best practices. It clones repos, identifies demos, analyzes drift from best practices, and creates PRs or delegates to the coding agent.
 
+## Build, Test, and Run
+
+```bash
+# Build
+dotnet build
+
+# Run all tests
+dotnet test
+
+# Run a single test by name
+dotnet test --filter "FullyQualifiedName~DemoFresh.Tests.ConfigurationTests.DemoFreshOptions_DefaultValues_AreCorrect"
+
+# Run tests in a single class
+dotnet test --filter "FullyQualifiedName~DemoFresh.Tests.DriftAnalyzerTests"
+
+# Run with code coverage
+dotnet test --collect:"XPlat Code Coverage"
+
+# Run the app
+dotnet run --project src/DemoFresh -- --repo https://github.com/owner/repo
+
+# Test email sending in isolation
+dotnet run --project src/DemoFresh -- --test-email
+```
+
 ## Architecture
 - Single .NET 10 console app using the .NET Generic Host pattern
 - Copilot SDK for AI-powered analysis and planning
-- MailKit for SMTP email (Gmail)
+- MailKit for SMTP email (Gmail OAuth2)
 - Serilog for structured file logging
-
-### Key Directories
-- `src/DemoFresh/Configuration/` - Strongly-typed config classes bound from appsettings.json
-- `src/DemoFresh/Services/` - Core business logic services
-- `src/DemoFresh/Tools/` - Copilot SDK custom tools (registered via AIFunctionFactory)
-- `src/DemoFresh/Models/` - Data models (Demo, DriftFinding, AnalysisReport, ActionResult)
-- `src/DemoFresh/Extensions/` - DI registration helpers (ServiceCollectionExtensions.AddDemoFresh)
-- `tests/DemoFresh.Tests/` - xUnit unit and integration tests (56 tests)
 
 ### Service Responsibilities & Workflow
 The main workflow is orchestrated by `AnalysisOrchestrator` (a `BackgroundService`):
@@ -31,7 +48,7 @@ The main workflow is orchestrated by `AnalysisOrchestrator` (a `BackgroundServic
 ### Thin Wrapper Pattern (Testability)
 External dependencies are wrapped in thin interfaces so all business logic can be unit tested:
 - `IProcessRunner` / `ProcessRunner` — Wraps `System.Diagnostics.Process` for git/gh CLI commands. Used by `RepoService` and `PrService`.
-- `ISmtpSender` / `SmtpSender` — Wraps MailKit `SmtpClient`. Used by `EmailToolFactory`.
+- `ISmtpSender` / `SmtpSender` — Wraps MailKit `SmtpClient` with Google OAuth2 authentication. Used by `EmailToolFactory`.
 - `ICopilotSessionManager` / `CopilotSessionManager` — Wraps `CopilotClient`/`CopilotSession`. Used by `DriftAnalyzer`, `PlanExecutor`, `DelegationService`.
 
 When adding new external dependencies, always follow this pattern: create an interface, implement a thin wrapper, inject via DI, and mock in tests.
@@ -44,6 +61,11 @@ When adding new external dependencies, always follow this pattern: create an int
 - Analysis system messages instruct the agent to always use Context7 for library/API documentation
 - If Context7 is disabled or unavailable, the agent falls back to web search
 
+### Graceful Degradation
+Optional features are skipped with a warning log when not configured:
+- **Context7**: Skipped if `ApiKey` is empty or `Enabled` is false — drift analysis proceeds with web search only
+- **Email**: Skipped if `SenderAddress`, `ClientId`, `ClientSecret`, or `ReportRecipient` is missing — console summary still prints
+
 ### Data Models
 All models are immutable records in `Models/`:
 - `RepoContents` (WorkingDirectory, RepoUrl, Branch, Files) → `RepoFile` (RelativePath, Content, Extension)
@@ -55,8 +77,9 @@ All models are immutable records in `Models/`:
 ### Configuration
 - `DemoFreshOptions` binds from the `DemoFresh` section of appsettings.json
 - `--repo <url>` CLI argument overrides the configured repo list via `PostConfigure<DemoFreshOptions>`
+- `--test-email` CLI argument sends a test email directly and exits (for debugging OAuth2)
 - `ActionMode` enum: `CreatePR` (local execution + PR) or `DelegateToCodingAgent` (cloud delegation)
-- Email credentials should use .NET user secrets in development
+- Email and Context7 credentials should use .NET user secrets in development
 
 ## Coding Conventions
 - Use async/await throughout — all I/O operations must be async
