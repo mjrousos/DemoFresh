@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DemoFresh": {
+      "commandName": "Project",
+      "commandLineArgs": "--repo https://github.com/mjrousos/copilot-content"
+    }
+  }
+}

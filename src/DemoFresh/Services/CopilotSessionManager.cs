@@ -23,6 +23,8 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
     private const string ExecutionSystemMessage =
         "Execute the provided plan. Make the necessary code changes.";
 
+    private const int CopilotTimeoutSeconds = 300;
+
     public CopilotSessionManager(ILogger<CopilotSessionManager> logger)
     {
         _logger = logger;
@@ -62,7 +64,7 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
             options.Attachments = attachments;
         }
 
-        var response = await session.SendAndWaitAsync(options);
+        var response = await session.SendAndWaitAsync(options, TimeSpan.FromSeconds(CopilotTimeoutSeconds));
         return response?.Data?.Content ?? string.Empty;
     }
 

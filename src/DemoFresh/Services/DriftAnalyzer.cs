@@ -114,13 +114,37 @@ public sealed class DriftAnalyzer(
             sb.AppendLine();
         }
 
-        sb.AppendLine("Return a JSON array of demos. Each demo should have:");
-        sb.AppendLine("- Name: short descriptive name");
-        sb.AppendLine("- Description: what the demo teaches");
-        sb.AppendLine("- Concepts: array of technology concepts demonstrated");
-        sb.AppendLine("- FilePaths: array of file paths belonging to this demo");
-        sb.AppendLine();
-        sb.AppendLine("Return ONLY the JSON array, no additional text.");
+        sb.AppendLine("""
+            Respond with ONLY a JSON array (no markdown, no explanation, no code fences).
+
+            JSON Schema:
+            [
+              {
+                "Name": "string (short descriptive name for the demo)",
+                "Description": "string (what the demo teaches)",
+                "Concepts": ["string (technology concepts demonstrated)"],
+                "FilePaths": ["string (relative file paths belonging to this demo)"]
+              }
+            ]
+
+            Example output:
+            [
+              {
+                "Name": "JWT Authentication",
+                "Description": "Demonstrates how to implement JWT-based authentication in ASP.NET Core",
+                "Concepts": ["ASP.NET Core", "JWT", "Authentication", "Middleware"],
+                "FilePaths": ["src/Auth/JwtHandler.cs", "src/Auth/AuthMiddleware.cs", "src/Auth/README.md"]
+              },
+              {
+                "Name": "Entity Framework Basics",
+                "Description": "Shows basic CRUD operations with Entity Framework Core",
+                "Concepts": ["Entity Framework Core", "CRUD", "SQL Server"],
+                "FilePaths": ["src/Data/AppDbContext.cs", "src/Data/UserRepository.cs"]
+              }
+            ]
+
+            IMPORTANT: Return ONLY the raw JSON array. Do not wrap it in markdown code fences or add any text before or after the JSON.
+            """);
 
         return sb.ToString();
     }
@@ -154,15 +178,42 @@ public sealed class DriftAnalyzer(
         sb.AppendLine("4. Compare the demo's usage patterns against the latest official documentation");
         sb.AppendLine("5. Identify any drift (outdated patterns, deprecated APIs, broken links, etc.)");
         sb.AppendLine();
-        sb.AppendLine("Return a JSON array of drift findings. Each finding should have:");
-        sb.AppendLine("- Description: what is outdated or incorrect");
-        sb.AppendLine("- Severity: Low, Medium, High, or Critical");
-        sb.AppendLine("- AffectedFiles: array of affected file paths");
-        sb.AppendLine("- SuggestedFix: how to fix the issue");
-        sb.AppendLine("- Category: category of drift (e.g., 'Deprecated API', 'Broken Link', 'Outdated Pattern')");
-        sb.AppendLine();
-        sb.AppendLine("If no drift is found, return an empty JSON array: []");
-        sb.AppendLine("Return ONLY the JSON array, no additional text.");
+        sb.AppendLine("""
+            Respond with ONLY a JSON array (no markdown, no explanation, no code fences).
+
+            JSON Schema:
+            [
+              {
+                "Description": "string (what is outdated or incorrect)",
+                "Severity": "Low | Medium | High | Critical",
+                "AffectedFiles": ["string (relative file paths affected)"],
+                "SuggestedFix": "string (how to fix the issue)",
+                "Category": "string (e.g., 'Deprecated API', 'Broken Link', 'Outdated Pattern', 'Version Drift', 'Missing Best Practice')"
+              }
+            ]
+
+            Example output:
+            [
+              {
+                "Description": "Using AddJsonFile() without reloadOnChange in .NET 10; current best practice is to use the WebApplicationBuilder which handles this automatically",
+                "Severity": "Medium",
+                "AffectedFiles": ["src/Program.cs"],
+                "SuggestedFix": "Replace Host.CreateDefaultBuilder with WebApplication.CreateBuilder which auto-configures JSON config providers",
+                "Category": "Outdated Pattern"
+              },
+              {
+                "Description": "Package Newtonsoft.Json 12.0.3 is outdated; current version is 13.0.3 with security fixes",
+                "Severity": "High",
+                "AffectedFiles": ["src/MyApp.csproj"],
+                "SuggestedFix": "Update Newtonsoft.Json to 13.0.3, or migrate to System.Text.Json which is the recommended JSON library for .NET",
+                "Category": "Version Drift"
+              }
+            ]
+
+            If no drift is found, return an empty JSON array: []
+
+            IMPORTANT: Return ONLY the raw JSON array. Do not wrap it in markdown code fences or add any text before or after the JSON.
+            """);
 
         return sb.ToString();
     }
