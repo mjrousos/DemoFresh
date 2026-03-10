@@ -29,7 +29,7 @@ public class SmtpSender : ISmtpSender
             await credential.RefreshTokenAsync(ct);
         }
 
-        var oauth2 = new SaslMechanismOAuth2(username, credential.Token.AccessToken);
+        var oauth2 = new SaslMechanismOAuth2(credential.UserId, credential.Token.AccessToken);
 
         using var client = new SmtpClient();
         var options = useSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None;

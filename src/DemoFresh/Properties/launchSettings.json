@@ -2,7 +2,17 @@
   "profiles": {
     "DemoFresh": {
       "commandName": "Project",
-      "commandLineArgs": "--repo https://github.com/mjrousos/copilot-content"
+      "commandLineArgs": "--repo https://github.com/mjrousos/copilot-content",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "TestEmail": {
+      "commandName": "Project",
+      "commandLineArgs": "--test-email",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
     }
   }
 }
