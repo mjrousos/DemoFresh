@@ -54,7 +54,7 @@ public class OrchestratorIntegrationTests
             .Returns(Task.CompletedTask);
 
         sessionManagerMock
-            .Setup(s => s.CreateAnalysisSessionAsync())
+            .Setup(s => s.CreateAnalysisSessionAsync(It.IsAny<string?>()))
             .ReturnsAsync((CopilotSession)null!);
 
         sessionManagerMock

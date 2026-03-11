@@ -22,7 +22,7 @@ public class PlanExecutor(ICopilotSessionManager sessionManager, ILogger<PlanExe
 
     public async Task ExecutePlanAsync(string plan, string workingDirectory, CancellationToken ct = default)
     {
-        var session = await sessionManager.CreateExecutionSessionAsync();
+        var session = await sessionManager.CreateExecutionSessionAsync(workingDirectory);
         await using var _ = session;
 
         var prompt = $"""

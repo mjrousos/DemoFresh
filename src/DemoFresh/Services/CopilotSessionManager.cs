@@ -43,7 +43,7 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         _logger.LogInformation("Copilot client started");
     }
 
-    private async Task<CopilotSession> CreateSessionAsync(string systemMessage)
+    private async Task<CopilotSession> CreateSessionAsync(string systemMessage, string? workingDirectory = null)
     {
         if (_client is null)
         {
@@ -53,6 +53,7 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         var config = new SessionConfig
         {
             Model = _demoFreshConfig.Model,
+            WorkingDirectory = workingDirectory,
 
             // Append mode adds our custom system message to the SDK's built-in system message,
             // so the agent retains its default capabilities (tool use, coding) while gaining
@@ -98,6 +99,11 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
 
         var session = await _client.CreateSessionAsync(config);
 
+        // To resume a previous session instead of creating a new one, store the session.SessionId and call ResumeSessionAsync instead. 
+        // Resuming sessions allows you to maintain conversation history and context across application restarts, 
+        // but be mindful of the total token count in the conversation history to avoid exceeding model limits.
+        // var session = await _client.ResumeSessionAsync(sessionId);
+
         _logger.LogInformation("Copilot session created: {SessionId}", session.SessionId);
         return session;
     }
@@ -106,14 +112,14 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
     // - Analysis: identify demos and analyze drift from best practices (read-only)
     // - Planning: generate a remediation plan without executing changes (plan-only)
     // - Execution: execute a plan by making actual code changes
-    public Task<CopilotSession> CreateAnalysisSessionAsync() =>
-        CreateSessionAsync(Prompts.Analysis);
+    public Task<CopilotSession> CreateAnalysisSessionAsync(string? workingDirectory = null) =>
+        CreateSessionAsync(Prompts.Analysis, workingDirectory);
 
-    public Task<CopilotSession> CreatePlanningSessionAsync() =>
-        CreateSessionAsync(Prompts.Planning);
+    public Task<CopilotSession> CreatePlanningSessionAsync(string? workingDirectory = null) =>
+        CreateSessionAsync(Prompts.Planning, workingDirectory);
 
-    public Task<CopilotSession> CreateExecutionSessionAsync() =>
-        CreateSessionAsync(Prompts.Execution);
+    public Task<CopilotSession> CreateExecutionSessionAsync(string? workingDirectory = null) =>
+        CreateSessionAsync(Prompts.Execution, workingDirectory);
 
     // MCP (Model Context Protocol) servers extend the agent's capabilities with external tools.
     // The "stdio" transport means the SDK launches the MCP server as a child process and

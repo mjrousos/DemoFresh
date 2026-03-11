@@ -7,11 +7,11 @@ public interface ICopilotSessionManager : IAsyncDisposable
 {
     Task InitializeAsync();
 
-    Task<CopilotSession> CreateAnalysisSessionAsync();
+    Task<CopilotSession> CreateAnalysisSessionAsync(string? workingDirectory = null);
 
-    Task<CopilotSession> CreatePlanningSessionAsync();
+    Task<CopilotSession> CreatePlanningSessionAsync(string? workingDirectory = null);
 
-    Task<CopilotSession> CreateExecutionSessionAsync();
+    Task<CopilotSession> CreateExecutionSessionAsync(string? workingDirectory = null);
 
     Task<string> SendAndWaitAsync(CopilotSession session, string prompt, List<UserMessageDataAttachmentsItem>? attachments = null);
 

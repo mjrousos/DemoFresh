@@ -11,7 +11,7 @@ public sealed class DriftAnalyzer(
     ICopilotSessionManager sessionManager,
     ILogger<DriftAnalyzer> logger) : IDriftAnalyzer
 {
-    const int FilePreviewLength = 2_000;
+    const int FilePreviewLength = 200;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -22,7 +22,7 @@ public sealed class DriftAnalyzer(
     public async Task<IReadOnlyList<Demo>> IdentifyDemosAsync(
         RepoContents repo, CancellationToken ct = default)
     {
-        var session = await sessionManager.CreateAnalysisSessionAsync();
+        var session = await sessionManager.CreateAnalysisSessionAsync(repo.WorkingDirectory);
         try
         {
             var prompt = BuildIdentifyDemosPrompt(repo);
@@ -62,7 +62,7 @@ public sealed class DriftAnalyzer(
     public async Task<IReadOnlyList<DriftFinding>> AnalyzeDriftAsync(
         Demo demo, RepoContents repo, CancellationToken ct = default)
     {
-        var session = await sessionManager.CreateAnalysisSessionAsync();
+        var session = await sessionManager.CreateAnalysisSessionAsync(repo.WorkingDirectory);
         try
         {
             var prompt = BuildAnalyzeDriftPrompt(demo, repo);

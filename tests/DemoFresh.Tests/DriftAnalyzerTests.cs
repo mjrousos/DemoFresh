@@ -86,7 +86,7 @@ public class DriftAnalyzerTests
     private void SetupSessionManagerToReturn(string response)
     {
         _sessionManagerMock
-            .Setup(m => m.CreateAnalysisSessionAsync())
+            .Setup(m => m.CreateAnalysisSessionAsync(It.IsAny<string?>()))
             .ReturnsAsync((CopilotSession)null!);
 
         _sessionManagerMock

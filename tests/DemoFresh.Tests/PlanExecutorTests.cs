@@ -103,7 +103,7 @@ public class PlanExecutorTests
         await _sut.GeneratePlanAsync(demo, findings);
 
         _sessionManagerMock.Verify(
-            m => m.CreatePlanningSessionAsync(),
+            m => m.CreatePlanningSessionAsync(It.IsAny<string?>()),
             Times.Once);
     }
 
@@ -115,14 +115,14 @@ public class PlanExecutorTests
         await _sut.ExecutePlanAsync("Fix things", "/tmp/repo");
 
         _sessionManagerMock.Verify(
-            m => m.CreateExecutionSessionAsync(),
+            m => m.CreateExecutionSessionAsync(It.IsAny<string?>()),
             Times.Once);
     }
 
     private void SetupPlanningSession(string response)
     {
         _sessionManagerMock
-            .Setup(m => m.CreatePlanningSessionAsync())
+            .Setup(m => m.CreatePlanningSessionAsync(It.IsAny<string?>()))
             .ReturnsAsync((CopilotSession)null!);
 
         _sessionManagerMock
@@ -138,7 +138,7 @@ public class PlanExecutorTests
     private void SetupExecutionSession(string response)
     {
         _sessionManagerMock
-            .Setup(m => m.CreateExecutionSessionAsync())
+            .Setup(m => m.CreateExecutionSessionAsync(It.IsAny<string?>()))
             .ReturnsAsync((CopilotSession)null!);
 
         _sessionManagerMock
