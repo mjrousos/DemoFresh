@@ -21,7 +21,6 @@ public class OrchestratorIntegrationTests
         var driftAnalyzerMock = new Mock<IDriftAnalyzer>();
         var planExecutorMock = new Mock<IPlanExecutor>();
         var prServiceMock = new Mock<IPrService>();
-        var delegationServiceMock = new Mock<IDelegationService>();
         var reportGeneratorMock = new Mock<IReportGenerator>();
         var lifetimeMock = new Mock<IHostApplicationLifetime>();
 
@@ -104,7 +103,6 @@ public class OrchestratorIntegrationTests
             driftAnalyzerMock.Object,
             planExecutorMock.Object,
             prServiceMock.Object,
-            delegationServiceMock.Object,
             reportGeneratorMock.Object,
             options,
             NullLogger<AnalysisOrchestrator>.Instance,

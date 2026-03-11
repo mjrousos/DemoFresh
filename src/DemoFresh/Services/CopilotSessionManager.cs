@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using DemoFresh.Configuration;
+using DemoFresh.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -8,6 +9,11 @@ using MimeKit;
 
 namespace DemoFresh.Services;
 
+/// <summary>
+/// Manages the full lifecycle of the Copilot SDK: client initialization, session creation
+/// with configuration (system messages, tools, hooks, MCP servers), multi-turn messaging,
+/// and cleanup. This is the central integration point for all Copilot SDK functionality.
+/// </summary>
 public sealed class CopilotSessionManager : ICopilotSessionManager
 {
     private readonly ILogger<CopilotSessionManager> _logger;
@@ -47,11 +53,20 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         var config = new SessionConfig
         {
             Model = _demoFreshConfig.Model,
+
+            // Append mode adds our custom system message to the SDK's built-in system message,
+            // so the agent retains its default capabilities (tool use, coding) while gaining
+            // domain-specific instructions for this session type
             SystemMessage = new SystemMessageConfig
             {
                 Mode = SystemMessageMode.Append,
                 Content = systemMessage
             },
+
+            // Infinite sessions allow the SDK to automatically compact conversation history
+            // when the context window fills up, preventing failures on long-running sessions.
+            // BackgroundCompactionThreshold (80%) triggers proactive summarization of older messages.
+            // BufferExhaustionThreshold (95%) triggers emergency compaction to prevent context overflow.
             InfiniteSessions = new InfiniteSessionConfig 
             { 
                 Enabled = true,
@@ -66,7 +81,9 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
             // and can identify the source of sessions in telemetry
             ClientName = "DemoFresh",
 
-            // For more granular control, you can implement custom permission handling logic here
+            // PermissionHandler.ApproveAll auto-approves all agent actions (file edits, shell commands).
+            // In production, implement custom logic to review and approve/deny specific operations
+            // before the agent executes them.
             OnPermissionRequest = PermissionHandler.ApproveAll,
 
             // Other configuration options can be set here, as needed, such as:
@@ -85,6 +102,10 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         return session;
     }
 
+    // Three session types, each with a different system message that constrains the agent's behavior:
+    // - Analysis: identify demos and analyze drift from best practices (read-only)
+    // - Planning: generate a remediation plan without executing changes (plan-only)
+    // - Execution: execute a plan by making actual code changes
     public Task<CopilotSession> CreateAnalysisSessionAsync() =>
         CreateSessionAsync(Prompts.Analysis);
 
@@ -94,6 +115,9 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
     public Task<CopilotSession> CreateExecutionSessionAsync() =>
         CreateSessionAsync(Prompts.Execution);
 
+    // MCP (Model Context Protocol) servers extend the agent's capabilities with external tools.
+    // The "stdio" transport means the SDK launches the MCP server as a child process and
+    // communicates over stdin/stdout. Each server's tools become available to the agent.
     private Dictionary<string, object>? CreateMcpServers()
     {
         var mcpServers = new Dictionary<string, object>();
@@ -124,6 +148,10 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         return mcpServers;
     }
 
+    // AIFunctionFactory.Create turns a regular .NET delegate into an AIFunction that the Copilot
+    // agent can invoke as a tool. The [Description] attributes on parameters tell the LLM what
+    // each parameter is for. The second argument is the tool name, and the third is a description
+    // the LLM uses to decide when to call this tool.
     private List<AIFunction> CreateTools()
     {
         var emailConfig = _demoFreshConfig.Email;
@@ -162,6 +190,10 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         return tools;
     }
 
+    // Hooks provide observability and control over session lifecycle events.
+    // OnPreToolUse/OnPostToolUse intercept tool invocations — PreToolUseHookOutput can modify
+    // or block tool calls if needed. Session start/end and error hooks enable logging and
+    // custom error recovery strategies.
     private SessionHooks CreateHooks()
     {
         return new SessionHooks
@@ -210,7 +242,9 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         };
     }
 
-   
+    // SendAndWaitAsync is a convenience pattern: send a user message and block until the agent
+    // reaches an idle state (all tool calls complete, final response ready). This simplifies
+    // multi-turn conversations compared to streaming individual events.
     public async Task<string> SendAndWaitAsync(
         CopilotSession session,
         string prompt,
@@ -224,6 +258,38 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
 
         var response = await session.SendAndWaitAsync(options, TimeSpan.FromSeconds(CopilotTimeoutSeconds));
         return response?.Data?.Content ?? string.Empty;
+    }
+
+    public async Task<ActionResult> DelegateToAgentAsync(Demo demo, string plan, CancellationToken ct = default)
+    {
+        CopilotSession? session = null;
+
+        try
+        {
+            _logger.LogInformation("Delegating execution for demo '{DemoName}' to coding agent", demo.Name);
+
+            session = await CreateExecutionSessionAsync();
+
+            // The "& " prefix is a Copilot CLI convention that tells the local agent to delegate
+            // this task to the cloud-hosted coding agent for autonomous execution
+            var prompt = $"& Please execute the following plan for demo '{demo.Name}':\n\n{plan}";
+            var response = await SendAndWaitAsync(session, prompt);
+
+            _logger.LogInformation("Delegation complete for demo '{DemoName}': {Response}", demo.Name, response);
+            return new ActionResult(ActionResultType.Delegated, PrUrl: null, DelegationConfirmation: response, ErrorMessage: null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delegate execution for demo '{DemoName}'", demo.Name);
+            return new ActionResult(ActionResultType.Failed, PrUrl: null, DelegationConfirmation: null, ErrorMessage: ex.Message);
+        }
+        finally
+        {
+            if (session is IAsyncDisposable disposable)
+            {
+                await disposable.DisposeAsync();
+            }
+        }
     }
 
     public async ValueTask DisposeAsync()

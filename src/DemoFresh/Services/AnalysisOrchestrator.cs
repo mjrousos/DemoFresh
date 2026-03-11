@@ -13,7 +13,6 @@ public class AnalysisOrchestrator : BackgroundService
     private readonly IDriftAnalyzer _driftAnalyzer;
     private readonly IPlanExecutor _planExecutor;
     private readonly IPrService _prService;
-    private readonly IDelegationService _delegationService;
     private readonly IReportGenerator _reportGenerator;
     private readonly DemoFreshOptions _options;
     private readonly ILogger<AnalysisOrchestrator> _logger;
@@ -25,7 +24,6 @@ public class AnalysisOrchestrator : BackgroundService
         IDriftAnalyzer driftAnalyzer,
         IPlanExecutor planExecutor,
         IPrService prService,
-        IDelegationService delegationService,
         IReportGenerator reportGenerator,
         IOptions<DemoFreshOptions> options,
         ILogger<AnalysisOrchestrator> logger,
@@ -36,7 +34,6 @@ public class AnalysisOrchestrator : BackgroundService
         _driftAnalyzer = driftAnalyzer;
         _planExecutor = planExecutor;
         _prService = prService;
-        _delegationService = delegationService;
         _reportGenerator = reportGenerator;
         _options = options.Value;
         _logger = logger;
@@ -118,7 +115,7 @@ public class AnalysisOrchestrator : BackgroundService
         var actionResult = _options.ActionMode switch
         {
             ActionMode.CreatePR => await CreatePrAsync(demo, plan, repoContents.WorkingDirectory, ct),
-            ActionMode.DelegateToCodingAgent => await _delegationService.DelegateToAgentAsync(demo, plan, ct),
+            ActionMode.DelegateToCodingAgent => await _sessionManager.DelegateToAgentAsync(demo, plan, ct),
             _ => new ActionResult(ActionResultType.Failed, null, null, $"Unknown action mode: {_options.ActionMode}")
         };
 

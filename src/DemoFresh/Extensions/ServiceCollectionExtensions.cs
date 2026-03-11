@@ -17,7 +17,6 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IDriftAnalyzer, DriftAnalyzer>();
         services.AddTransient<IPlanExecutor, PlanExecutor>();
         services.AddTransient<IPrService, PrService>();
-        services.AddTransient<IDelegationService, DelegationService>();
         services.AddTransient<IReportGenerator, ReportGenerator>();
         services.AddSingleton<ISmtpSender, SmtpSender>();
         services.AddHostedService<AnalysisOrchestrator>();
