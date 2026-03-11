@@ -1,95 +1,43 @@
+using System.ComponentModel;
 using DemoFresh.Configuration;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using MimeKit;
 
 namespace DemoFresh.Services;
 
 public sealed class CopilotSessionManager : ICopilotSessionManager
 {
     private readonly ILogger<CopilotSessionManager> _logger;
+
+    private readonly DemoFreshOptions _demoFreshConfig;
+
+    private readonly ISmtpSender _smtpSender;
+    
     private CopilotClient? _client;
 
-    private const string AnalysisSystemMessage =
-        "You are an expert at analyzing code repositories. Identify demos and concepts being taught. " +
-        "When analyzing for drift, check URLs for validity, search the web for current best practices, " +
-        "and compare existing code. Return results as structured JSON. " +
-        "You have access to Context7 MCP which provides up-to-date library documentation. " +
-        "Always use Context7 to look up current documentation for any library, framework, or API before analyzing drift. " +
-        "This is critical for accurate drift detection — do not skip this step.";
-
-    private const string PlanningSystemMessage =
-        "You are a planning assistant. Given drift findings, produce a structured implementation plan. " +
-        "Do NOT make any changes yet. Only plan.";
-
-    private const string ExecutionSystemMessage =
-        "Execute the provided plan. Make the necessary code changes.";
-
     private const int CopilotTimeoutSeconds = 600;
-
-    public CopilotSessionManager(ILogger<CopilotSessionManager> logger)
+    
+    public CopilotSessionManager(ILogger<CopilotSessionManager> logger, IOptions<DemoFreshOptions> config, ISmtpSender smtpSender)
     {
         _logger = logger;
+        _demoFreshConfig = config.Value;
+        _smtpSender = smtpSender;
     }
 
     public async Task InitializeAsync()
     {
         _logger.LogInformation("Initializing Copilot client");
+
+        // The CopilotClient is designed to be long-lived and reused across multiple sessions, so we initialize it once here
         _client = new CopilotClient(new CopilotClientOptions());
         await _client.StartAsync();
         _logger.LogInformation("Copilot client started");
     }
 
-    public Task<CopilotSession> CreateAnalysisSessionAsync(string model, Context7Config? context7 = null, IEnumerable<AIFunction>? tools = null)
-    {
-        return CreateSessionAsync(model, AnalysisSystemMessage, tools, context7);
-    }
-
-    public Task<CopilotSession> CreatePlanningSessionAsync(string model)
-    {
-        return CreateSessionAsync(model, PlanningSystemMessage, tools: null);
-    }
-
-    public Task<CopilotSession> CreateExecutionSessionAsync(string model, IEnumerable<AIFunction>? tools = null)
-    {
-        return CreateSessionAsync(model, ExecutionSystemMessage, tools);
-    }
-
-    public async Task<string> SendAndWaitAsync(
-        CopilotSession session,
-        string prompt,
-        List<UserMessageDataAttachmentsItem>? attachments = null)
-    {
-        var options = new MessageOptions { Prompt = prompt };
-        if (attachments is { Count: > 0 })
-        {
-            options.Attachments = attachments;
-        }
-
-        var response = await session.SendAndWaitAsync(options, TimeSpan.FromSeconds(CopilotTimeoutSeconds));
-        return response?.Data?.Content ?? string.Empty;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_client is not null)
-        {
-            _logger.LogInformation("Disposing Copilot client");
-            await _client.DisposeAsync();
-            _client = null;
-        }
-    }
-
-    public async Task DisposeSessionAsync(CopilotSession session)
-    {
-        await session.DisposeAsync();
-    }
-
-    private async Task<CopilotSession> CreateSessionAsync(
-        string model,
-        string systemMessage,
-        IEnumerable<AIFunction>? tools,
-        Context7Config? context7 = null)
+    private async Task<CopilotSession> CreateSessionAsync(string systemMessage)
     {
         if (_client is null)
         {
@@ -98,39 +46,71 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
 
         var config = new SessionConfig
         {
-            Model = model,
+            Model = _demoFreshConfig.Model,
             SystemMessage = new SystemMessageConfig
             {
                 Mode = SystemMessageMode.Append,
                 Content = systemMessage
             },
+            InfiniteSessions = new InfiniteSessionConfig 
+            { 
+                Enabled = true,
+                BackgroundCompactionThreshold = 0.8,
+                BufferExhaustionThreshold = 0.95
+            },
             Hooks = CreateHooks(),
+            McpServers = CreateMcpServers(),
+            Tools = CreateTools(),
+
+            // The client name is an arbitrary string that will be included in User-Agent headers 
+            // and can identify the source of sessions in telemetry
+            ClientName = "DemoFresh",
 
             // For more granular control, you can implement custom permission handling logic here
-            OnPermissionRequest = PermissionHandler.ApproveAll
+            OnPermissionRequest = PermissionHandler.ApproveAll,
+
+            // Other configuration options can be set here, as needed, such as:
+            // AvailableTools = [],
+            // CustomAgents = [],
+            // SkillDirectories = [],
+            // DisabledSkills = [],
+            // ExcludedTools = [],            
+            // OnUserInputRequest = DelegateForHandlingUserInputRequestsFromModel,
+        
         };
 
-        if (tools is not null)
-        {
-            config.Tools = [.. tools];
-        }
+        var session = await _client.CreateSessionAsync(config);
 
-        if (context7 is { Enabled: true, ApiKey.Length: > 0 })
+        _logger.LogInformation("Copilot session created: {SessionId}", session.SessionId);
+        return session;
+    }
+
+    public Task<CopilotSession> CreateAnalysisSessionAsync() =>
+        CreateSessionAsync(Prompts.Analysis);
+
+    public Task<CopilotSession> CreatePlanningSessionAsync() =>
+        CreateSessionAsync(Prompts.Planning);
+
+    public Task<CopilotSession> CreateExecutionSessionAsync() =>
+        CreateSessionAsync(Prompts.Execution);
+
+    private Dictionary<string, object>? CreateMcpServers()
+    {
+        var mcpServers = new Dictionary<string, object>();
+
+        if (_demoFreshConfig.Context7 is { Enabled: true, ApiKey.Length: > 0 })
         {
-            var args = context7.Args.Concat(["--api-key", context7.ApiKey]).ToList();
-            config.McpServers = new Dictionary<string, object>
-            {
-                ["context7"] = new McpLocalServerConfig
-                {
-                    Type = "stdio",
-                    Command = context7.Command,
-                    Args = args,
-                    Tools = ["*"] 
-                }
-            };
+            var args = _demoFreshConfig.Context7.Args.Concat(["--api-key", _demoFreshConfig.Context7.ApiKey]).ToList();
             _logger.LogInformation("Context7 MCP server configured for session");
+            mcpServers.Add("context7", new McpLocalServerConfig
+            {
+                Type = "stdio",
+                Command = _demoFreshConfig.Context7.Command,
+                Args = args,
+                Tools = ["*"]
+            });
         }
-        else if (context7 is null or { Enabled: false })
+        else if (_demoFreshConfig.Context7 is null or { Enabled: false })
         {
             _logger.LogDebug("Context7 MCP is disabled; skipping");
         }
@@ -139,10 +119,47 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
             _logger.LogWarning("Context7 MCP is enabled but no API key is configured; skipping. Set DemoFresh:Context7:ApiKey to enable.");
         }
 
-        _logger.LogInformation("Creating Copilot session with model {Model}", model);
-        var session = await _client.CreateSessionAsync(config);
-        _logger.LogInformation("Copilot session created: {SessionId}", session.SessionId);
-        return session;
+        // Add additional MCP servers here as needed
+
+        return mcpServers;
+    }
+
+    private List<AIFunction> CreateTools()
+    {
+        var emailConfig = _demoFreshConfig.Email;
+        var tools = new List<AIFunction>
+        {
+            AIFunctionFactory.Create(
+                async ([Description("Recipient email address")] string recipient,
+                       [Description("Email subject line")] string subject,
+                       [Description("HTML email body")] string htmlBody) =>
+                {
+                    try
+                    {
+                        var message = new MimeMessage();
+                        message.From.Add(new MailboxAddress(emailConfig.SenderName, emailConfig.SenderAddress));
+                        message.To.Add(MailboxAddress.Parse(recipient));
+                        message.Subject = subject;
+                        message.Body = new TextPart("html") { Text = htmlBody };
+
+                        await _smtpSender.SendAsync(message, emailConfig.SmtpHost, emailConfig.SmtpPort, emailConfig.UseSsl, emailConfig.SenderAddress, emailConfig.ClientId, emailConfig.ClientSecret);
+
+                        _logger.LogInformation("Email sent to {Recipient} with subject \"{Subject}\"", recipient, subject);
+                        return new { Success = true, Message = $"Email sent successfully to {recipient}" };
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send email to {Recipient}", recipient);
+                        return new { Success = false, Message = $"Failed to send email: {ex.Message}" };
+                    }
+                },
+                "send_email",
+                "Send an email report to the specified recipient")
+        };
+
+        // Add additional tools here as needed
+
+        return tools;
     }
 
     private SessionHooks CreateHooks()
@@ -192,4 +209,35 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
             }
         };
     }
+
+   
+    public async Task<string> SendAndWaitAsync(
+        CopilotSession session,
+        string prompt,
+        List<UserMessageDataAttachmentsItem>? attachments = null)
+    {
+        var options = new MessageOptions { Prompt = prompt };
+        if (attachments is { Count: > 0 })
+        {
+            options.Attachments = attachments;
+        }
+
+        var response = await session.SendAndWaitAsync(options, TimeSpan.FromSeconds(CopilotTimeoutSeconds));
+        return response?.Data?.Content ?? string.Empty;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_client is not null)
+        {
+            _logger.LogInformation("Disposing Copilot client");
+            await _client.DisposeAsync();
+            _client = null;
+        }
+    }
+
+    public async Task DisposeSessionAsync(CopilotSession session)
+    {
+        await session.DisposeAsync();
+    }    
 }

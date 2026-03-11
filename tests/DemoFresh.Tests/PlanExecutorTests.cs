@@ -1,7 +1,6 @@
 using DemoFresh.Models;
 using DemoFresh.Services;
 using GitHub.Copilot.SDK;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -26,7 +25,7 @@ public class PlanExecutorTests
         var demo = TestDataHelpers.CreateTestDemo("MySpecialDemo");
         var findings = new[] { TestDataHelpers.CreateTestFinding() };
 
-        await _sut.GeneratePlanAsync(demo, findings, "gpt-5");
+        await _sut.GeneratePlanAsync(demo, findings);
 
         Assert.NotNull(_capturedPrompt);
         Assert.Contains("MySpecialDemo", _capturedPrompt);
@@ -41,7 +40,7 @@ public class PlanExecutorTests
         var demo = TestDataHelpers.CreateTestDemo();
         var findings = new[] { TestDataHelpers.CreateTestFinding() };
 
-        var result = await _sut.GeneratePlanAsync(demo, findings, "gpt-5");
+        var result = await _sut.GeneratePlanAsync(demo, findings);
 
         Assert.Equal("Step 1: Do X", result);
     }
@@ -59,7 +58,7 @@ public class PlanExecutorTests
             TestDataHelpers.CreateTestFinding(DriftSeverity.Critical)
         };
 
-        await _sut.GeneratePlanAsync(demo, findings, "gpt-5");
+        await _sut.GeneratePlanAsync(demo, findings);
 
         Assert.NotNull(_capturedPrompt);
         Assert.Contains("Low", _capturedPrompt);
@@ -75,7 +74,7 @@ public class PlanExecutorTests
     {
         SetupExecutionSession("Done");
 
-        await _sut.ExecutePlanAsync("Fix things", "/tmp/my-repo", "gpt-5");
+        await _sut.ExecutePlanAsync("Fix things", "/tmp/my-repo");
 
         Assert.NotNull(_capturedPrompt);
         Assert.Contains("/tmp/my-repo", _capturedPrompt);
@@ -87,7 +86,7 @@ public class PlanExecutorTests
         SetupExecutionSession("Done");
 
         var planText = "Step 1: Update Program.cs\nStep 2: Run tests";
-        await _sut.ExecutePlanAsync(planText, "/tmp/repo", "gpt-5");
+        await _sut.ExecutePlanAsync(planText, "/tmp/repo");
 
         Assert.NotNull(_capturedPrompt);
         Assert.Contains(planText, _capturedPrompt);
@@ -101,10 +100,10 @@ public class PlanExecutorTests
         var demo = TestDataHelpers.CreateTestDemo();
         var findings = new[] { TestDataHelpers.CreateTestFinding() };
 
-        await _sut.GeneratePlanAsync(demo, findings, "gpt-5");
+        await _sut.GeneratePlanAsync(demo, findings);
 
         _sessionManagerMock.Verify(
-            m => m.CreatePlanningSessionAsync("gpt-5"),
+            m => m.CreatePlanningSessionAsync(),
             Times.Once);
     }
 
@@ -113,17 +112,17 @@ public class PlanExecutorTests
     {
         SetupExecutionSession("Done");
 
-        await _sut.ExecutePlanAsync("Fix things", "/tmp/repo", "gpt-5");
+        await _sut.ExecutePlanAsync("Fix things", "/tmp/repo");
 
         _sessionManagerMock.Verify(
-            m => m.CreateExecutionSessionAsync("gpt-5", It.IsAny<IEnumerable<AIFunction>?>()),
+            m => m.CreateExecutionSessionAsync(),
             Times.Once);
     }
 
     private void SetupPlanningSession(string response)
     {
         _sessionManagerMock
-            .Setup(m => m.CreatePlanningSessionAsync(It.IsAny<string>()))
+            .Setup(m => m.CreatePlanningSessionAsync())
             .ReturnsAsync((CopilotSession)null!);
 
         _sessionManagerMock
@@ -139,7 +138,7 @@ public class PlanExecutorTests
     private void SetupExecutionSession(string response)
     {
         _sessionManagerMock
-            .Setup(m => m.CreateExecutionSessionAsync(It.IsAny<string>(), It.IsAny<IEnumerable<AIFunction>?>()))
+            .Setup(m => m.CreateExecutionSessionAsync())
             .ReturnsAsync((CopilotSession)null!);
 
         _sessionManagerMock

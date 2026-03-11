@@ -1,6 +1,5 @@
 using DemoFresh.Configuration;
 using DemoFresh.Models;
-using DemoFresh.Tools;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,7 +15,6 @@ public class AnalysisOrchestrator : BackgroundService
     private readonly IPrService _prService;
     private readonly IDelegationService _delegationService;
     private readonly IReportGenerator _reportGenerator;
-    private readonly ISmtpSender _smtpSender;
     private readonly DemoFreshOptions _options;
     private readonly ILogger<AnalysisOrchestrator> _logger;
     private readonly IHostApplicationLifetime _lifetime;
@@ -29,7 +27,6 @@ public class AnalysisOrchestrator : BackgroundService
         IPrService prService,
         IDelegationService delegationService,
         IReportGenerator reportGenerator,
-        ISmtpSender smtpSender,
         IOptions<DemoFreshOptions> options,
         ILogger<AnalysisOrchestrator> logger,
         IHostApplicationLifetime lifetime)
@@ -41,7 +38,6 @@ public class AnalysisOrchestrator : BackgroundService
         _prService = prService;
         _delegationService = delegationService;
         _reportGenerator = reportGenerator;
-        _smtpSender = smtpSender;
         _options = options.Value;
         _logger = logger;
         _lifetime = lifetime;
@@ -78,7 +74,7 @@ public class AnalysisOrchestrator : BackgroundService
 
         try
         {
-            var demos = await _driftAnalyzer.IdentifyDemosAsync(repoContents, _options.Model, _options.Context7, ct);
+            var demos = await _driftAnalyzer.IdentifyDemosAsync(repoContents, ct);
             var demoAnalyses = new List<DemoAnalysis>();
 
             foreach (var demo in demos)
@@ -106,7 +102,7 @@ public class AnalysisOrchestrator : BackgroundService
 
     private async Task<DemoAnalysis> AnalyzeDemoAsync(Demo demo, RepoContents repoContents, CancellationToken ct)
     {
-        var findings = await _driftAnalyzer.AnalyzeDriftAsync(demo, repoContents, _options.Model, _options.Context7, ct);
+        var findings = await _driftAnalyzer.AnalyzeDriftAsync(demo, repoContents, ct);
 
         if (findings.Count == 0)
         {
@@ -117,12 +113,12 @@ public class AnalysisOrchestrator : BackgroundService
                 Action: new ActionResult(ActionResultType.NoActionNeeded, null, null, null));
         }
 
-        var plan = await _planExecutor.GeneratePlanAsync(demo, findings, _options.Model, ct);
+        var plan = await _planExecutor.GeneratePlanAsync(demo, findings, ct);
 
         var actionResult = _options.ActionMode switch
         {
             ActionMode.CreatePR => await CreatePrAsync(demo, plan, repoContents.WorkingDirectory, ct),
-            ActionMode.DelegateToCodingAgent => await _delegationService.DelegateToAgentAsync(demo, plan, _options.Model, ct),
+            ActionMode.DelegateToCodingAgent => await _delegationService.DelegateToAgentAsync(demo, plan, ct),
             _ => new ActionResult(ActionResultType.Failed, null, null, $"Unknown action mode: {_options.ActionMode}")
         };
 
@@ -131,7 +127,7 @@ public class AnalysisOrchestrator : BackgroundService
 
     private async Task<ActionResult> CreatePrAsync(Demo demo, string plan, string workingDirectory, CancellationToken ct)
     {
-        await _planExecutor.ExecutePlanAsync(plan, workingDirectory, _options.Model, ct);
+        await _planExecutor.ExecutePlanAsync(plan, workingDirectory, ct);
         return await _prService.CreatePullRequestAsync(demo, plan, workingDirectory, ct);
     }
 
@@ -150,9 +146,8 @@ public class AnalysisOrchestrator : BackgroundService
         }
 
         var htmlReport = _reportGenerator.GenerateHtmlReport(report);
-        var emailTool = EmailToolFactory.Create(_options.Email, _smtpSender, _logger);
 
-        var session = await _sessionManager.CreateAnalysisSessionAsync(_options.Model, tools: [emailTool]);
+        var session = await _sessionManager.CreateAnalysisSessionAsync();
         var prompt = $"Send an email to {_options.ReportRecipient} with the subject " +
                      $"\"DemoFresh Report: {report.RepoUrl}\" and the following HTML body:\n\n{htmlReport}";
 

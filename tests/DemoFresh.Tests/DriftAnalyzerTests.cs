@@ -35,7 +35,7 @@ public class DriftAnalyzerTests
 
         SetupSessionManagerToReturn(jsonResponse);
 
-        var result = await _sut.IdentifyDemosAsync(TestRepo, "gpt-5");
+        var result = await _sut.IdentifyDemosAsync(TestRepo);
 
         Assert.Equal(2, result.Count);
         Assert.Equal("Demo1", result[0].Name);
@@ -47,7 +47,7 @@ public class DriftAnalyzerTests
     {
         SetupSessionManagerToReturn("This is not valid JSON at all");
 
-        var result = await _sut.IdentifyDemosAsync(TestRepo, "gpt-5");
+        var result = await _sut.IdentifyDemosAsync(TestRepo);
 
         Assert.Single(result);
         Assert.Equal("Full Repository", result[0].Name);
@@ -59,7 +59,7 @@ public class DriftAnalyzerTests
         SetupSessionManagerToReturn("No drift found in this demo.");
 
         var demo = TestDataHelpers.CreateTestDemo();
-        var result = await _sut.AnalyzeDriftAsync(demo, TestRepo, "gpt-5");
+        var result = await _sut.AnalyzeDriftAsync(demo, TestRepo);
 
         Assert.Empty(result);
     }
@@ -76,7 +76,7 @@ public class DriftAnalyzerTests
         SetupSessionManagerToReturn(jsonResponse);
 
         var demo = TestDataHelpers.CreateTestDemo();
-        var result = await _sut.AnalyzeDriftAsync(demo, TestRepo, "gpt-5");
+        var result = await _sut.AnalyzeDriftAsync(demo, TestRepo);
 
         Assert.Single(result);
         Assert.Equal("Deprecated API usage", result[0].Description);
@@ -86,7 +86,7 @@ public class DriftAnalyzerTests
     private void SetupSessionManagerToReturn(string response)
     {
         _sessionManagerMock
-            .Setup(m => m.CreateAnalysisSessionAsync(It.IsAny<string>(), It.IsAny<DemoFresh.Configuration.Context7Config?>(), It.IsAny<IEnumerable<Microsoft.Extensions.AI.AIFunction>?>()))
+            .Setup(m => m.CreateAnalysisSessionAsync())
             .ReturnsAsync((CopilotSession)null!);
 
         _sessionManagerMock

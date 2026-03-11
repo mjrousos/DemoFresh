@@ -6,7 +6,7 @@ namespace DemoFresh.Services;
 
 public class DelegationService(ICopilotSessionManager sessionManager, ILogger<DelegationService> logger) : IDelegationService
 {
-    public async Task<ActionResult> DelegateToAgentAsync(Demo demo, string plan, string model, CancellationToken ct = default)
+    public async Task<ActionResult> DelegateToAgentAsync(Demo demo, string plan, CancellationToken ct = default)
     {
         CopilotSession? session = null;
 
@@ -14,7 +14,7 @@ public class DelegationService(ICopilotSessionManager sessionManager, ILogger<De
         {
             logger.LogInformation("Delegating execution for demo '{DemoName}' to coding agent", demo.Name);
 
-            session = await sessionManager.CreateExecutionSessionAsync(model);
+            session = await sessionManager.CreateExecutionSessionAsync();
 
             var prompt = $"& Please execute the following plan for demo '{demo.Name}':\n\n{plan}";
             var response = await sessionManager.SendAndWaitAsync(session, prompt);

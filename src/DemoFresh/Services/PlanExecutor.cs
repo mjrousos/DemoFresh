@@ -6,9 +6,9 @@ namespace DemoFresh.Services;
 
 public class PlanExecutor(ICopilotSessionManager sessionManager, ILogger<PlanExecutor> logger) : IPlanExecutor
 {
-    public async Task<string> GeneratePlanAsync(Demo demo, IReadOnlyList<DriftFinding> findings, string model, CancellationToken ct = default)
+    public async Task<string> GeneratePlanAsync(Demo demo, IReadOnlyList<DriftFinding> findings, CancellationToken ct = default)
     {
-        var session = await sessionManager.CreatePlanningSessionAsync(model);
+        var session = await sessionManager.CreatePlanningSessionAsync();
         await using var _ = session;
 
         var prompt = BuildPlanningPrompt(demo, findings);
@@ -20,9 +20,9 @@ public class PlanExecutor(ICopilotSessionManager sessionManager, ILogger<PlanExe
         return plan;
     }
 
-    public async Task ExecutePlanAsync(string plan, string workingDirectory, string model, CancellationToken ct = default)
+    public async Task ExecutePlanAsync(string plan, string workingDirectory, CancellationToken ct = default)
     {
-        var session = await sessionManager.CreateExecutionSessionAsync(model);
+        var session = await sessionManager.CreateExecutionSessionAsync();
         await using var _ = session;
 
         var prompt = $"""

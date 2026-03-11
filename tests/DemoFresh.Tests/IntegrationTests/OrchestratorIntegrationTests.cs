@@ -23,7 +23,6 @@ public class OrchestratorIntegrationTests
         var prServiceMock = new Mock<IPrService>();
         var delegationServiceMock = new Mock<IDelegationService>();
         var reportGeneratorMock = new Mock<IReportGenerator>();
-        var smtpSenderMock = new Mock<ISmtpSender>();
         var lifetimeMock = new Mock<IHostApplicationLifetime>();
 
         var options = Options.Create(new DemoFreshOptions
@@ -56,7 +55,7 @@ public class OrchestratorIntegrationTests
             .Returns(Task.CompletedTask);
 
         sessionManagerMock
-            .Setup(s => s.CreateAnalysisSessionAsync(It.IsAny<string>(), It.IsAny<Context7Config?>(), It.IsAny<IEnumerable<Microsoft.Extensions.AI.AIFunction>?>()))
+            .Setup(s => s.CreateAnalysisSessionAsync())
             .ReturnsAsync((CopilotSession)null!);
 
         sessionManagerMock
@@ -68,19 +67,19 @@ public class OrchestratorIntegrationTests
             .Returns(Task.CompletedTask);
 
         driftAnalyzerMock
-            .Setup(d => d.IdentifyDemosAsync(It.IsAny<RepoContents>(), It.IsAny<string>(), It.IsAny<Context7Config?>(), It.IsAny<CancellationToken>()))
+            .Setup(d => d.IdentifyDemosAsync(It.IsAny<RepoContents>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Demo> { testDemo });
 
         driftAnalyzerMock
-            .Setup(d => d.AnalyzeDriftAsync(It.IsAny<Demo>(), It.IsAny<RepoContents>(), It.IsAny<string>(), It.IsAny<Context7Config?>(), It.IsAny<CancellationToken>()))
+            .Setup(d => d.AnalyzeDriftAsync(It.IsAny<Demo>(), It.IsAny<RepoContents>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<DriftFinding> { testFinding });
 
         planExecutorMock
-            .Setup(p => p.GeneratePlanAsync(It.IsAny<Demo>(), It.IsAny<IReadOnlyList<DriftFinding>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.GeneratePlanAsync(It.IsAny<Demo>(), It.IsAny<IReadOnlyList<DriftFinding>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Step 1: Fix the issue");
 
         planExecutorMock
-            .Setup(p => p.ExecutePlanAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(p => p.ExecutePlanAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         prServiceMock
@@ -107,7 +106,6 @@ public class OrchestratorIntegrationTests
             prServiceMock.Object,
             delegationServiceMock.Object,
             reportGeneratorMock.Object,
-            smtpSenderMock.Object,
             options,
             NullLogger<AnalysisOrchestrator>.Instance,
             lifetimeMock.Object);
@@ -124,9 +122,9 @@ public class OrchestratorIntegrationTests
         // Verify services were called in expected order
         sessionManagerMock.Verify(s => s.InitializeAsync(), Times.Once);
         repoServiceMock.Verify(r => r.CloneAndEnumerateAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
-        driftAnalyzerMock.Verify(d => d.IdentifyDemosAsync(It.IsAny<RepoContents>(), It.IsAny<string>(), It.IsAny<Context7Config?>(), It.IsAny<CancellationToken>()), Times.Once);
-        driftAnalyzerMock.Verify(d => d.AnalyzeDriftAsync(It.IsAny<Demo>(), It.IsAny<RepoContents>(), It.IsAny<string>(), It.IsAny<Context7Config?>(), It.IsAny<CancellationToken>()), Times.Once);
-        planExecutorMock.Verify(p => p.GeneratePlanAsync(It.IsAny<Demo>(), It.IsAny<IReadOnlyList<DriftFinding>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        driftAnalyzerMock.Verify(d => d.IdentifyDemosAsync(It.IsAny<RepoContents>(), It.IsAny<CancellationToken>()), Times.Once);
+        driftAnalyzerMock.Verify(d => d.AnalyzeDriftAsync(It.IsAny<Demo>(), It.IsAny<RepoContents>(), It.IsAny<CancellationToken>()), Times.Once);
+        planExecutorMock.Verify(p => p.GeneratePlanAsync(It.IsAny<Demo>(), It.IsAny<IReadOnlyList<DriftFinding>>(), It.IsAny<CancellationToken>()), Times.Once);
         prServiceMock.Verify(p => p.CreatePullRequestAsync(It.IsAny<Demo>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         reportGeneratorMock.Verify(r => r.GenerateConsoleSummary(It.IsAny<AnalysisReport>()), Times.Once);
         repoServiceMock.Verify(r => r.CleanupAsync(It.IsAny<string>()), Times.Once);

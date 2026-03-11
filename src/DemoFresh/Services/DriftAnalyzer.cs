@@ -11,6 +11,8 @@ public sealed class DriftAnalyzer(
     ICopilotSessionManager sessionManager,
     ILogger<DriftAnalyzer> logger) : IDriftAnalyzer
 {
+    const int FilePreviewLength = 2_000;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -18,9 +20,9 @@ public sealed class DriftAnalyzer(
     };
 
     public async Task<IReadOnlyList<Demo>> IdentifyDemosAsync(
-        RepoContents repo, string model, Context7Config? context7 = null, CancellationToken ct = default)
+        RepoContents repo, CancellationToken ct = default)
     {
-        var session = await sessionManager.CreateAnalysisSessionAsync(model, context7);
+        var session = await sessionManager.CreateAnalysisSessionAsync();
         try
         {
             var prompt = BuildIdentifyDemosPrompt(repo);
@@ -58,9 +60,9 @@ public sealed class DriftAnalyzer(
     }
 
     public async Task<IReadOnlyList<DriftFinding>> AnalyzeDriftAsync(
-        Demo demo, RepoContents repo, string model, Context7Config? context7 = null, CancellationToken ct = default)
+        Demo demo, RepoContents repo, CancellationToken ct = default)
     {
-        var session = await sessionManager.CreateAnalysisSessionAsync(model, context7);
+        var session = await sessionManager.CreateAnalysisSessionAsync();
         try
         {
             var prompt = BuildAnalyzeDriftPrompt(demo, repo);
@@ -108,10 +110,11 @@ public sealed class DriftAnalyzer(
 
         foreach (var file in repo.Files)
         {
-            var preview = file.Content.Length > 200
-                ? file.Content[..200] + "..."
+            var preview = file.Content.Length > FilePreviewLength
+                ? file.Content[..FilePreviewLength] + "..."
                 : file.Content;
             sb.AppendLine($"--- {file.RelativePath} ---");
+            sb.AppendLine($"(file content preview, max {FilePreviewLength} chars)");
             sb.AppendLine(preview);
             sb.AppendLine();
         }

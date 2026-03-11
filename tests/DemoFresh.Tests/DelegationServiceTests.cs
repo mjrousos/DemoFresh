@@ -1,7 +1,6 @@
 using DemoFresh.Models;
 using DemoFresh.Services;
 using GitHub.Copilot.SDK;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -24,7 +23,7 @@ public class DelegationServiceTests
         SetupExecutionSession("Execution completed successfully");
 
         var demo = TestDataHelpers.CreateTestDemo();
-        var result = await _sut.DelegateToAgentAsync(demo, "Fix all issues", "gpt-5");
+        var result = await _sut.DelegateToAgentAsync(demo, "Fix all issues");
 
         Assert.Equal(ActionResultType.Delegated, result.Type);
         Assert.Equal("Execution completed successfully", result.DelegationConfirmation);
@@ -38,7 +37,7 @@ public class DelegationServiceTests
 
         var demo = TestDataHelpers.CreateTestDemo();
         var plan = "Step 1: Update packages\nStep 2: Fix APIs";
-        await _sut.DelegateToAgentAsync(demo, plan, "gpt-5");
+        await _sut.DelegateToAgentAsync(demo, plan);
 
         Assert.NotNull(_capturedPrompt);
         Assert.StartsWith("& ", _capturedPrompt);
@@ -51,7 +50,7 @@ public class DelegationServiceTests
         SetupExecutionSession("Done");
 
         var demo = TestDataHelpers.CreateTestDemo("SpecialDemo");
-        await _sut.DelegateToAgentAsync(demo, "Some plan", "gpt-5");
+        await _sut.DelegateToAgentAsync(demo, "Some plan");
 
         Assert.NotNull(_capturedPrompt);
         Assert.Contains("SpecialDemo", _capturedPrompt);
@@ -61,7 +60,7 @@ public class DelegationServiceTests
     public async Task DelegateToAgent_SessionManagerThrows_ReturnsFailedResult()
     {
         _sessionManagerMock
-            .Setup(m => m.CreateExecutionSessionAsync(It.IsAny<string>(), It.IsAny<IEnumerable<AIFunction>?>()))
+            .Setup(m => m.CreateExecutionSessionAsync())
             .ReturnsAsync((CopilotSession)null!);
 
         _sessionManagerMock
@@ -69,7 +68,7 @@ public class DelegationServiceTests
             .ThrowsAsync(new InvalidOperationException("Session timed out"));
 
         var demo = TestDataHelpers.CreateTestDemo();
-        var result = await _sut.DelegateToAgentAsync(demo, "Some plan", "gpt-5");
+        var result = await _sut.DelegateToAgentAsync(demo, "Some plan");
 
         Assert.Equal(ActionResultType.Failed, result.Type);
         Assert.NotNull(result.ErrorMessage);
@@ -83,17 +82,17 @@ public class DelegationServiceTests
         SetupExecutionSession("Done");
 
         var demo = TestDataHelpers.CreateTestDemo();
-        await _sut.DelegateToAgentAsync(demo, "Some plan", "gpt-5");
+        await _sut.DelegateToAgentAsync(demo, "Some plan");
 
         _sessionManagerMock.Verify(
-            m => m.CreateExecutionSessionAsync("gpt-5", It.IsAny<IEnumerable<AIFunction>?>()),
+            m => m.CreateExecutionSessionAsync(),
             Times.Once);
     }
 
     private void SetupExecutionSession(string response)
     {
         _sessionManagerMock
-            .Setup(m => m.CreateExecutionSessionAsync(It.IsAny<string>(), It.IsAny<IEnumerable<AIFunction>?>()))
+            .Setup(m => m.CreateExecutionSessionAsync())
             .ReturnsAsync((CopilotSession)null!);
 
         _sessionManagerMock
