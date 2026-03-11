@@ -148,6 +148,8 @@ public class AnalysisOrchestrator : BackgroundService
         var prompt = $"Send an email to {_options.ReportRecipient} with the subject " +
                      $"\"DemoFresh Report: {report.RepoUrl}\" and the following HTML body:\n\n{htmlReport}";
 
+        _logger.LogInformation("Sending email report to {Recipient} with subject \"DemoFresh Report: {RepoUrl}\" and body:\n{HtmlBody}", _options.ReportRecipient, report.RepoUrl, htmlReport);
+
         await _sessionManager.SendAndWaitAsync(session, prompt);
     }
 }
