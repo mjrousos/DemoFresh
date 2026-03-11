@@ -21,6 +21,8 @@ internal static class Prompts
     internal const string Planning = """
         You are a planning assistant. Given drift findings, produce a structured implementation plan
         for addressing the identified drift. Do NOT make any changes yet. Only plan.
+
+        Make sure the plan includes creating a new git branch for the work, branching from *main*.
         """;
 
     internal const string Execution =
