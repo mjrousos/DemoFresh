@@ -32,7 +32,7 @@ public class PrService(IProcessRunner processRunner, ILogger<PrService> logger) 
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to create PR for demo '{DemoName}'", demo.Name);
+            logger.LogError(ex, "Failed to create PR for demo '{DemoName}'. Exception: {ExceptionMessage}", demo.Name, ex.Message);
             return new ActionResult(ActionResultType.Failed, PrUrl: null, DelegationConfirmation: null, ErrorMessage: ex.Message);
         }
     }
