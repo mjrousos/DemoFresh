@@ -24,7 +24,7 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
     
     private CopilotClient? _client;
 
-    private const int CopilotTimeoutSeconds = 600;
+    private const int CopilotTimeoutSeconds = 1200;
     
     public CopilotSessionManager(ILogger<CopilotSessionManager> logger, IOptions<DemoFreshOptions> config, ISmtpSender smtpSender)
     {
@@ -37,8 +37,14 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
     {
         _logger.LogInformation("Initializing Copilot client");
 
+        var copilotClientOptions = new CopilotClientOptions
+        {
+            UseLoggedInUser = true, // Use the credentials of the currently logged-in user for authentication
+            // GitHubToken = _demoFreshConfig.GitHubToken // Alternatively, specify a PAT directly in configuration if not using logged-in user auth
+        };
+
         // The CopilotClient is designed to be long-lived and reused across multiple sessions, so we initialize it once here
-        _client = new CopilotClient(new CopilotClientOptions());
+        _client = new CopilotClient(copilotClientOptions);
         await _client.StartAsync();
         _logger.LogInformation("Copilot client started");
     }
@@ -166,15 +172,22 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
             AIFunctionFactory.Create(
                 async ([Description("Recipient email address")] string recipient,
                        [Description("Email subject line")] string subject,
-                       [Description("HTML email body")] string htmlBody) =>
+                       [Description("Absolute file path to an HTML file whose contents will be used as the email body")] string htmlBodyFilePath) =>
                 {
                     try
                     {
+                        if (!File.Exists(htmlBodyFilePath))
+                        {
+                            return new { Success = false, Message = $"File not found: {htmlBodyFilePath}" };
+                        }
+
+                        var body = await File.ReadAllTextAsync(htmlBodyFilePath);
+
                         var message = new MimeMessage();
                         message.From.Add(new MailboxAddress(emailConfig.SenderName, emailConfig.SenderAddress));
                         message.To.Add(MailboxAddress.Parse(recipient));
                         message.Subject = subject;
-                        message.Body = new TextPart("html") { Text = htmlBody };
+                        message.Body = new TextPart("html") { Text = body };
 
                         await _smtpSender.SendAsync(message, emailConfig.SmtpHost, emailConfig.SmtpPort, emailConfig.UseSsl, emailConfig.SenderAddress, emailConfig.ClientId, emailConfig.ClientSecret);
 
@@ -257,6 +270,8 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
         List<UserMessageDataAttachmentsItem>? attachments = null)
     {
         var options = new MessageOptions { Prompt = prompt };
+
+        // Attachments could include files, directories, selected text, or GitHub items
         if (attachments is { Count: > 0 })
         {
             options.Attachments = attachments;

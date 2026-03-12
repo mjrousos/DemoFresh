@@ -143,13 +143,24 @@ public class AnalysisOrchestrator : BackgroundService
         }
 
         var htmlReport = _reportGenerator.GenerateHtmlReport(report);
+        var reportPath = Path.Combine(Path.GetTempPath(), $"demofresh-report-{Guid.NewGuid():N}.html");
+        await File.WriteAllTextAsync(reportPath, htmlReport, ct);
 
-        var session = await _sessionManager.CreateAnalysisSessionAsync();
-        var prompt = $"Send an email to {_options.ReportRecipient} with the subject " +
-                     $"\"DemoFresh Report: {report.RepoUrl}\" and the following HTML body:\n\n{htmlReport}";
+        try
+        {
+            var session = await _sessionManager.CreateAnalysisSessionAsync();
+            var prompt = $"Send an email to {_options.ReportRecipient} with the subject " +
+                         $"\"DemoFresh Report: {report.RepoUrl}\". " +
+                         $"Use the send_email tool with htmlBodyFilePath set to \"{reportPath}\".";
 
-        _logger.LogInformation("Sending email report to {Recipient} with subject \"DemoFresh Report: {RepoUrl}\" and body:\n{HtmlBody}", _options.ReportRecipient, report.RepoUrl, htmlReport);
+            _logger.LogInformation("Sending email report to {Recipient} from {ReportPath}", _options.ReportRecipient, reportPath);
 
-        await _sessionManager.SendAndWaitAsync(session, prompt);
+            await _sessionManager.SendAndWaitAsync(session, prompt);
+        }
+        finally
+        {
+            try { File.Delete(reportPath); }
+            catch (IOException ex) { _logger.LogWarning(ex, "Failed to clean up report file {ReportPath}", reportPath); }
+        }
     }
 }
