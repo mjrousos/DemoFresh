@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>29073e3a-4e83-4c80-9866-7bba29e551ea</UserSecretsId>
+    <InternalsVisibleTo>DemoFresh.Tests</InternalsVisibleTo>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,7 +17,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>
 

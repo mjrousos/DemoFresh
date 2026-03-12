@@ -97,6 +97,8 @@ public class OrchestratorIntegrationTests
         var cts = new CancellationTokenSource();
         lifetimeMock.Setup(l => l.StopApplication()).Callback(() => cts.Cancel());
 
+        var consoleDisplayMock = new Mock<IConsoleDisplay>();
+
         var orchestrator = new AnalysisOrchestrator(
             repoServiceMock.Object,
             sessionManagerMock.Object,
@@ -104,6 +106,7 @@ public class OrchestratorIntegrationTests
             planExecutorMock.Object,
             prServiceMock.Object,
             reportGeneratorMock.Object,
+            consoleDisplayMock.Object,
             options,
             NullLogger<AnalysisOrchestrator>.Instance,
             lifetimeMock.Object);

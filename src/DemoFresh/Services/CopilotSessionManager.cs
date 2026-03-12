@@ -21,16 +21,19 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
     private readonly DemoFreshOptions _demoFreshConfig;
 
     private readonly ISmtpSender _smtpSender;
+
+    private readonly IConsoleDisplay _consoleDisplay;
     
     private CopilotClient? _client;
 
     private const int CopilotTimeoutSeconds = 1200;
     
-    public CopilotSessionManager(ILogger<CopilotSessionManager> logger, IOptions<DemoFreshOptions> config, ISmtpSender smtpSender)
+    public CopilotSessionManager(ILogger<CopilotSessionManager> logger, IOptions<DemoFreshOptions> config, ISmtpSender smtpSender, IConsoleDisplay consoleDisplay)
     {
         _logger = logger;
         _demoFreshConfig = config.Value;
         _smtpSender = smtpSender;
+        _consoleDisplay = consoleDisplay;
     }
 
     public async Task InitializeAsync()
@@ -225,6 +228,20 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
                     "Tool invocation starting: {ToolName} with args {ToolArgs}",
                     input.ToolName,
                     input.ToolArgs);
+
+                if (input.ToolName == "report_intent")
+                {
+                    var intent = ConsoleDisplayService.ParseIntentFromArgs(input.ToolArgs?.ToString());
+                    if (intent is not null)
+                    {
+                        _consoleDisplay.OnIntentChanged(intent);
+                    }
+                }
+                else
+                {
+                    _consoleDisplay.OnToolCallStarted(input.ToolName, input.ToolArgs?.ToString());
+                }
+
                 return Task.FromResult<PreToolUseHookOutput?>(new PreToolUseHookOutput());
             },
             OnPostToolUse = (input, invocation) =>
@@ -232,6 +249,12 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
                 _logger.LogInformation(
                     "Tool invocation completed: {ToolName}",
                     input.ToolName);
+
+                if (input.ToolName != "report_intent")
+                {
+                    _consoleDisplay.OnToolCallCompleted(input.ToolName);
+                }
+
                 return Task.FromResult<PostToolUseHookOutput?>(new PostToolUseHookOutput());
             },
             OnSessionStart = (input, invocation) =>
@@ -239,6 +262,7 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
                 _logger.LogInformation(
                     "Session started (source: {Source})",
                     input.Source);
+                _consoleDisplay.OnSessionStart(invocation.SessionId);
                 return Task.FromResult<SessionStartHookOutput?>(new SessionStartHookOutput());
             },
             OnSessionEnd = (input, invocation) =>
@@ -246,6 +270,7 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
                 _logger.LogInformation(
                     "Session ended (reason: {Reason})",
                     input.Reason);
+                _consoleDisplay.OnSessionEnd();
                 return Task.FromResult<SessionEndHookOutput?>(new SessionEndHookOutput());
             },
             OnErrorOccurred = (input, invocation) =>

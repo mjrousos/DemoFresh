@@ -2,6 +2,7 @@ using DemoFresh.Configuration;
 using DemoFresh.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
 
 namespace DemoFresh.Extensions;
 
@@ -11,6 +12,8 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<DemoFreshOptions>(config.GetSection("DemoFresh"));
 
+        services.AddSingleton<IAnsiConsole>(_ => AnsiConsole.Console);
+        services.AddSingleton<IConsoleDisplay, ConsoleDisplayService>();
         services.AddSingleton<IProcessRunner, ProcessRunner>();
         services.AddSingleton<ICopilotSessionManager, CopilotSessionManager>();
         services.AddTransient<IRepoService, RepoService>();

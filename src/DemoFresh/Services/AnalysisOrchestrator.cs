@@ -14,6 +14,7 @@ public class AnalysisOrchestrator : BackgroundService
     private readonly IPlanExecutor _planExecutor;
     private readonly IPrService _prService;
     private readonly IReportGenerator _reportGenerator;
+    private readonly IConsoleDisplay _consoleDisplay;
     private readonly DemoFreshOptions _options;
     private readonly ILogger<AnalysisOrchestrator> _logger;
     private readonly IHostApplicationLifetime _lifetime;
@@ -25,6 +26,7 @@ public class AnalysisOrchestrator : BackgroundService
         IPlanExecutor planExecutor,
         IPrService prService,
         IReportGenerator reportGenerator,
+        IConsoleDisplay consoleDisplay,
         IOptions<DemoFreshOptions> options,
         ILogger<AnalysisOrchestrator> logger,
         IHostApplicationLifetime lifetime)
@@ -35,6 +37,7 @@ public class AnalysisOrchestrator : BackgroundService
         _planExecutor = planExecutor;
         _prService = prService;
         _reportGenerator = reportGenerator;
+        _consoleDisplay = consoleDisplay;
         _options = options.Value;
         _logger = logger;
         _lifetime = lifetime;
@@ -45,6 +48,7 @@ public class AnalysisOrchestrator : BackgroundService
         try
         {
             _logger.LogInformation("Starting analysis orchestrator with {RepoCount} repos configured", _options.Repos.Count);
+            _consoleDisplay.ShowIdle();
             await _sessionManager.InitializeAsync();
 
             foreach (var repo in _options.Repos)
@@ -87,7 +91,7 @@ public class AnalysisOrchestrator : BackgroundService
                 demoAnalyses);
 
             var consoleSummary = _reportGenerator.GenerateConsoleSummary(report);
-            Console.WriteLine(consoleSummary);
+            _consoleDisplay.DisplaySummary(consoleSummary);
 
             await SendEmailReportAsync(report, ct);
         }
