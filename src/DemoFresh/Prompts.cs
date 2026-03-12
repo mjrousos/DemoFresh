@@ -9,8 +9,11 @@ internal static class Prompts
         When analyzing for drift, perform all of these tasks:
         
         1. Check that URLs in the code are still valid.
-        2. Use Context7 MCP to look up current documentation for any libraries, frameworks, or APIs used in the code. 
-           This is critical for accurate drift detection — do not skip this step.
+        2. For any libraries, frameworks, or APIs used in the code, look up their current documentation
+           using the Context7 MCP tools. First call the `resolve-library-id` tool to find the library's
+           Context7 identifier, then call `get-library-docs` with that identifier to retrieve up-to-date
+           documentation. This is critical for accurate drift detection — do not skip this step.
+           Always prefer these Context7 tools over web_fetch for library/API documentation.
         3. Search the web for relevant information and best practices relevant to the code being analyzed.
         4. Compare the current code against best practices and identify any drift (including dead or out-of-date links).
            Be specific about what the drift is, why it matters, and how to fix it. 

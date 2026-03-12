@@ -136,13 +136,15 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
 
         if (_demoFreshConfig.Context7 is { Enabled: true, ApiKey.Length: > 0 })
         {
-            var args = _demoFreshConfig.Context7.Args.Concat(["--api-key", _demoFreshConfig.Context7.ApiKey]).ToList();
             _logger.LogInformation("Context7 MCP server configured for session");
-            mcpServers.Add("context7", new McpLocalServerConfig
+            mcpServers.Add("context7", new McpRemoteServerConfig
             {
-                Type = "stdio",
-                Command = _demoFreshConfig.Context7.Command,
-                Args = args,
+                Type = "http",
+                Url = "https://mcp.context7.com/mcp",
+                Headers = new Dictionary<string, string>
+                {
+                    { "CONTEXT7_API_KEY", _demoFreshConfig.Context7.ApiKey }
+                },
                 Tools = ["*"]
             });
         }
