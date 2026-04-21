@@ -2,7 +2,7 @@
   "profiles": {
     "DemoFresh": {
       "commandName": "Project",
-      "commandLineArgs": "--repo https://github.com/mjrousos/copilot-content",
+      "commandLineArgs": "--repo https://github.com/coreai-microsoft/fde-copilot-content",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       }

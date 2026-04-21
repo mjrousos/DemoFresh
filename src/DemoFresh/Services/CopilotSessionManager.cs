@@ -93,6 +93,8 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
             // before the agent executes them.
             OnPermissionRequest = PermissionHandler.ApproveAll,
 
+            Streaming = false, // Disable streaming to simplify the response pattern for this demo. With streaming enabled, the agent's final response is sent as a series of incremental updates.
+
             // Other configuration options can be set here, as needed, such as:
             // AvailableTools = [],
             // CustomAgents = [],
@@ -100,10 +102,27 @@ public sealed class CopilotSessionManager : ICopilotSessionManager
             // DisabledSkills = [],
             // ExcludedTools = [],            
             // OnUserInputRequest = DelegateForHandlingUserInputRequestsFromModel,
-        
+            // OnElicitationRequest = DelegateForHandlingElicitationRequestsFromModel,
+            // Commands = [],
+            // ReasoningEffort = "High",
         };
 
         var session = await _client.CreateSessionAsync(config);
+
+        session.On(evt =>
+        {
+           switch (evt)
+            {
+                case AssistantMessageDeltaEvent deltaEvent:
+                    // Incremental streamed message
+                    break;
+                case SessionIdleEvent idleEvent:
+                    // Agent is idle, waiting for next user message
+                    break;
+                // There are *many* other events for all types of agent activity
+                // https://github.com/github/copilot-sdk/blob/main/docs/features/streaming-events.md
+            } 
+        });
 
         // To resume a previous session instead of creating a new one, store the session.SessionId and call ResumeSessionAsync instead. 
         // Resuming sessions allows you to maintain conversation history and context across application restarts, 

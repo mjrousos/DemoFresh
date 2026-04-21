@@ -8,6 +8,7 @@ using MimeKit;
 using Serilog;
 
 var builder = Host.CreateDefaultBuilder(args)
+    .UseContentRoot(AppContext.BaseDirectory)
     .UseSerilog((context, config) => config.ReadFrom.Configuration(context.Configuration))
     .ConfigureServices((context, services) =>
     {
